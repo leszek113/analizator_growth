@@ -1,0 +1,46 @@
+# Reguły selekcji spółek
+# Możesz edytować te warunki bez znajomości programowania
+
+selection_rules:
+  # 1. Kraj - tylko spółki z US, UK, CA
+  country:
+    column: "Country"
+    operator: "in"
+    values: ["US", "UK", "CA"]
+  
+  # 2. Quality rating - tylko wartość 13 lub 12
+  quality_rating:
+    column: "Quality Rating (out Of 13)"
+    operator: "in"
+    values: [13, 12]
+  
+  # 3. Yield - większy lub równy 4% brutto
+  yield:
+    column: "Yield"
+    operator: ">="
+    value: 4.0
+  
+  # 4. Dividend Growth Streak - większy lub równy 15 lat
+  dividend_growth_streak:
+    column: "Dividend Growth Streak (Years)"
+    operator: ">="
+    value: 15
+  
+  # 5. 5-Year Dividend Growth Rate CAGR - minimum 300%
+  dividend_growth_rate:
+    column: "5-Year Dividend Growth Rate CAGR"
+    operator: ">="
+    value: 300.0
+  
+  # 6. S&P Credit Rating - A* i tylko BBB+, BBB (bez BBB-)
+  sp_credit_rating:
+    column: "S&P Credit Rating"
+    operator: "complex"
+    allowed_patterns: ["A*", "BBB+", "BBB"]
+    excluded_values: ["BBB-"]
+  
+  # 7. DK Rating - "Potential Good to buy or better"
+  dk_rating:
+    column: "DK Rating"
+    operator: "in"
+    values: ["Potential Good to buy or better"] 
