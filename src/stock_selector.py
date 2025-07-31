@@ -21,6 +21,21 @@ class StockSelector:
             print(f"Błąd w pliku YAML: {e}")
             return {}
     
+    def _convert_to_numeric(self, value_str):
+        """Konwertuje string na liczbę, obsługując różne formaty"""
+        if pd.isna(value_str) or value_str == 'N/A' or value_str == 'NA':
+            return None
+        
+        value_str = str(value_str).strip()
+        
+        # Usuń znaki walut i procenty
+        value_str = value_str.replace('$', '').replace('%', '')
+        
+        try:
+            return float(value_str)
+        except ValueError:
+            return None
+    
     def apply_rule(self, df, rule_name, rule_config):
         """Stosuje pojedynczą regułę do DataFrame"""
         column = rule_config.get('column')
@@ -35,7 +50,17 @@ class StockSelector:
             mask = df[column].isin(values)
         elif operator == '>=':
             value = rule_config.get('value')
-            mask = df[column] >= value
+            # Specjalna obsługa dla porównań numerycznych w stringach
+            if isinstance(value, str) and ('$' in value or '%' in value or '.' in value):
+                # Konwertuj kolumnę na numeryczną dla porównania
+                numeric_col = df[column].apply(self._convert_to_numeric)
+                numeric_value = self._convert_to_numeric(value)
+                if numeric_value is not None:
+                    mask = numeric_col >= numeric_value
+                else:
+                    mask = pd.Series([False] * len(df))
+            else:
+                mask = df[column] >= value
         elif operator == 'complex':
             # Specjalna obsługa dla S&P Credit Rating
             if column == 'S&P Credit Rating':
@@ -53,17 +78,14 @@ class StockSelector:
         allowed_patterns = rule_config.get('allowed_patterns', [])
         excluded_values = rule_config.get('excluded_values', [])
         
-        mask = pd.Series([False] * len(column))
+        mask = pd.Series([False] * len(column), index=column.index)
         
-        for idx, value in enumerate(column):
-            if pd.isna(value):
+        for idx in column.index:
+            value = column.loc[idx]
+            if pd.isna(value) or value in excluded_values:
                 continue
                 
             value_str = str(value).strip()
-            
-            # Sprawdź czy wartość jest w wykluczonych
-            if value_str in excluded_values:
-                continue
             
             # Sprawdź wzorce A* i BBB+, BBB
             is_allowed = False
@@ -75,7 +97,7 @@ class StockSelector:
                     is_allowed = True
                     break
             
-            mask.iloc[idx] = is_allowed
+            mask.loc[idx] = is_allowed
         
         return mask
     

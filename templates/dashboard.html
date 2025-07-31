@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Analizator Rynku{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Statystyki -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">📊 Statystyki</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h3 class="text-primary">{{ stats.total_runs }}</h3>
+                        <small class="text-muted">Uruchomień</small>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="text-success">{{ stats.latest_companies_count }}</h3>
+                        <small class="text-muted">Spółek (ostatnio)</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <small class="text-muted">
+                        Ostatnie uruchomienie:<br>
+                        <strong>{{ stats.latest_run_date }}</strong>
+                    </small>
+                    <hr>
+                    <div class="mt-2">
+                        {% if stats.has_today_run %}
+                            <span class="badge bg-success">✅ Dzisiejsza selekcja wykonana</span>
+                            {% if stats.today_run_info %}
+                                <br>                        <small class="text-muted">
+                            {{ stats.today_run_info.selected_count }} spółek w selekcji (Etap 1)
+                        </small>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-warning">⚠️ Brak dzisiejszej selekcji</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Najnowsze wyniki -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">🎯 Najnowsze wyniki selekcji (Etap 1)</h5>
+                <a href="{{ url_for('results') }}" class="btn btn-sm btn-outline-primary">Zobacz wszystkie</a>
+            </div>
+            <div class="card-body">
+                {% if latest_results is defined and latest_results is not none and latest_results.stage1_companies is defined and not latest_results.stage1_companies.empty %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Nazwa</th>
+                                    <th>Sektor</th>
+                                    <th>Stochastic 1M</th>
+                                    <th>Stochastic 1W</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for company in latest_results.stage1_companies.head(10).to_dict('records') %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('company_history', ticker=company.ticker) }}">
+                                            <strong>{{ company.ticker }}</strong>
+                                        </a>
+                                    </td>
+                                    <td>{{ company.informational_data_parsed.get('company', 'N/A') }}</td>
+                                    <td>{{ company.informational_data_parsed.get('sector', 'N/A') }}</td>
+                                    <td>
+                                        {% if company.stochastic_1m %}
+                                            <span class="badge {% if company.stochastic_1m < 30 %}bg-success{% else %}bg-warning{% endif %}">
+                                                {{ "%.1f"|format(company.stochastic_1m) }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.stochastic_1w %}
+                                            <span class="badge {% if company.stochastic_1w < 30 %}bg-success{% else %}bg-warning{% endif %}">
+                                                {{ "%.1f"|format(company.stochastic_1w) }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.final_selection %}
+                                            <span class="badge bg-success">✅</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">❌</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if latest_results.stage1_companies|length > 10 %}
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                Pokazano 10 z {{ latest_results.stage1_companies|length }} spółek
+                            </small>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center text-muted">
+                        <p>Brak wyników do wyświetlenia</p>
+                        <button class="btn btn-primary" onclick="runAnalysis()">
+                            Uruchom pierwszą analizę
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historia uruchomień -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">📈 Historia uruchomień</h5>
+            </div>
+            <div class="card-body">
+                {% if history is defined and history is not none and not history.empty %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                                                <th>Liczba spółek</th>
+                            <th>Status</th>
+                            <th>Notatki</th>
+                                    <th>Wersja selekcji</th>
+                                    <th>Wersja info</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for _, run in history.iterrows() %}
+                                <tr>
+                                    <td>{{ run.run_date }}</td>
+                                                                    <td>{{ run.selected_count }}</td>
+                                <td>{{ run.status }}</td>
+                                <td>{{ run.notes }}</td>
+                                    <td><span class="badge bg-info">{{ run.selection_rules_version }}</span></td>
+                                    <td><span class="badge bg-secondary">{{ run.informational_columns_version }}</span></td>
+                                    <td>
+                                        <span class="badge bg-success">{{ run.status }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted">
+                        <p>Brak historii uruchomień</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

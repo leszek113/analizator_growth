@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Nie znaleziono - Analizator Rynku{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0 text-warning">🔍 Strona nie została znaleziona</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <h3 class="text-warning">404 - Strona nie istnieje</h3>
+                    <p class="text-muted">Strona, której szukasz, nie została znaleziona.</p>
+                </div>
+                
+                <div class="mt-4">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                        ← Wróć do Dashboard
+                    </a>
+                    <button onclick="history.back()" class="btn btn-outline-secondary">
+                        ← Wróć do poprzedniej strony
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

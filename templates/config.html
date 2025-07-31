@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block title %}Konfiguracja - Analizator Rynku{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-cogs"></i> Konfiguracja Systemu
+            </h1>
+            
+            <!-- Alerty -->
+            <div id="alertContainer"></div>
+            
+            <!-- Karty konfiguracji -->
+            <div class="row">
+                <!-- Reguły Selekcji -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-filter"></i> Reguły Selekcji
+                            </h5>
+                            <div>
+                                <button class="btn btn-sm btn-primary" onclick="editSelectionRules()">
+                                    <i class="fas fa-edit"></i> Edytuj
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="addSelectionRule()">
+                                    <i class="fas fa-plus"></i> Dodaj
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if selection_rules and selection_rules.selection_rules %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Reguła</th>
+                                                <th>Kolumna</th>
+                                                <th>Operator</th>
+                                                <th>Akcje</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for rule_name, rule_data in selection_rules.selection_rules.items() %}
+                                            <tr>
+                                                <td><strong>{{ rule_name }}</strong></td>
+                                                <td>{{ rule_data.column }}</td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ rule_data.operator }}</span>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-danger" onclick="deleteSelectionRule('{{ rule_name }}')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Brak reguł selekcji</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Kolumny Informacyjne -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-table"></i> Kolumny Informacyjne
+                            </h5>
+                            <div>
+                                <button class="btn btn-sm btn-primary" onclick="editInfoColumns()">
+                                    <i class="fas fa-edit"></i> Edytuj
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="addInfoColumn()">
+                                    <i class="fas fa-plus"></i> Dodaj
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if data_columns and data_columns.informational_columns %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Klucz</th>
+                                                <th>Nazwa Kolumny</th>
+                                                <th>Akcje</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for column_key, column_name in data_columns.informational_columns.items() %}
+                                            <tr>
+                                                <td><code>{{ column_key }}</code></td>
+                                                <td>{{ column_name }}</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-danger" onclick="deleteInfoColumn('{{ column_key }}')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Brak kolumn informacyjnych</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Historia Wersji -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history"></i> Historia Wersji
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Wersje Reguł Selekcji</h6>
+                                    {% if selection_versions is not none and not selection_versions.empty %}
+                                        <div class="list-group">
+                                            {% for version in selection_versions.itertuples() %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ version.version }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">{{ version.created_at }}</small>
+                                                    </div>
+                                                    <span class="badge bg-secondary">reguły</span>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">Brak historii wersji</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h6>Wersje Kolumn Informacyjnych</h6>
+                                    {% if info_versions is not none and not info_versions.empty %}
+                                        <div class="list-group">
+                                            {% for version in info_versions.itertuples() %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ version.version }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">{{ version.created_at }}</small>
+                                                    </div>
+                                                    <span class="badge bg-secondary">kolumny</span>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">Brak historii wersji</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal dla dodawania reguły selekcji -->
+<div class="modal fade" id="addSelectionRuleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dodaj Nową Regułę Selekcji</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSelectionRuleForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ruleName" class="form-label">Nazwa Reguły</label>
+                                <input type="text" class="form-control" id="ruleName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ruleColumn" class="form-label">Kolumna</label>
+                                <input type="text" class="form-control" id="ruleColumn" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ruleOperator" class="form-label">Operator</label>
+                                <select class="form-select" id="ruleOperator" required>
+                                    <option value="in">in (lista wartości)</option>
+                                    <option value=">=">>= (większe lub równe)</option>
+                                    <option value="<="><= (mniejsze lub równe)</option>
+                                    <option value="==">== (równe)</option>
+                                    <option value="!=">!= (różne)</option>
+                                    <option value="complex">complex (wzorce)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ruleValue" class="form-label">Wartość/Wartości</label>
+                                <input type="text" class="form-control" id="ruleValue" placeholder="np. 4% lub US,UK,Canada">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddSelectionRule()">Dodaj Regułę</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal dla dodawania kolumny informacyjnej -->
+<div class="modal fade" id="addInfoColumnModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dodaj Nową Kolumnę Informacyjną</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addInfoColumnForm">
+                    <div class="mb-3">
+                        <label for="columnKey" class="form-label">Klucz Kolumny</label>
+                        <input type="text" class="form-control" id="columnKey" placeholder="np. market_cap" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="columnName" class="form-label">Nazwa Kolumny w Google Sheets</label>
+                        <input type="text" class="form-control" id="columnName" placeholder="np. Market Cap (Billion)" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddInfoColumn()">Dodaj Kolumnę</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Funkcje JavaScript dla interakcji
+function showAlert(message, type = 'success') {
+    const alertContainer = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    alertContainer.appendChild(alert);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 5000);
+}
+
+function editSelectionRules() {
+    window.location.href = '/config/edit_selection_rules';
+}
+
+function editInfoColumns() {
+    window.location.href = '/config/edit_info_columns';
+}
+
+function addSelectionRule() {
+    const modal = new bootstrap.Modal(document.getElementById('addSelectionRuleModal'));
+    modal.show();
+}
+
+function addInfoColumn() {
+    const modal = new bootstrap.Modal(document.getElementById('addInfoColumnModal'));
+    modal.show();
+}
+
+function deleteSelectionRule(ruleName) {
+    if (confirm(`Czy na pewno chcesz usunąć regułę "${ruleName}"?`)) {
+        fetch('/config/delete_selection_rule', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ rule_name: ruleName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Błąd podczas usuwania reguły', 'danger');
+        });
+    }
+}
+
+function deleteInfoColumn(columnKey) {
+    if (confirm(`Czy na pewno chcesz usunąć kolumnę "${columnKey}"?`)) {
+        fetch('/config/delete_info_column', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ column_key: columnKey })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Błąd podczas usuwania kolumny', 'danger');
+        });
+    }
+}
+
+function submitAddSelectionRule() {
+    const ruleName = document.getElementById('ruleName').value;
+    const ruleColumn = document.getElementById('ruleColumn').value;
+    const ruleOperator = document.getElementById('ruleOperator').value;
+    const ruleValue = document.getElementById('ruleValue').value;
+    
+    if (!ruleName || !ruleColumn || !ruleOperator) {
+        showAlert('Wypełnij wszystkie wymagane pola', 'warning');
+        return;
+    }
+    
+    const ruleData = {
+        column: ruleColumn,
+        operator: ruleOperator
+    };
+    
+    // Dodaj wartość w zależności od operatora
+    if (ruleOperator === 'in' || ruleOperator === 'complex') {
+        ruleData.values = ruleValue.split(',').map(v => v.trim());
+    } else {
+        ruleData.value = ruleValue;
+    }
+    
+    fetch('/config/add_selection_rule', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            rule_name: ruleName,
+            rule_data: ruleData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addSelectionRuleModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Błąd podczas dodawania reguły', 'danger');
+    });
+}
+
+function submitAddInfoColumn() {
+    const columnKey = document.getElementById('columnKey').value;
+    const columnName = document.getElementById('columnName').value;
+    
+    if (!columnKey || !columnName) {
+        showAlert('Wypełnij wszystkie pola', 'warning');
+        return;
+    }
+    
+    fetch('/config/add_info_column', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            column_key: columnKey,
+            column_name: columnName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addInfoColumnModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Błąd podczas dodawania kolumny', 'danger');
+    });
+}
+</script>
+{% endblock %} 

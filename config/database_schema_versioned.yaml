@@ -1,0 +1,174 @@
+# STRUKTURA BAZY DANYCH Z WERSJONOWANIEM
+# Obsługuje zmiany reguł selekcji i kolumn informacyjnych w czasie
+
+## NOWA STRUKTURA BAZY DANYCH
+
+### Tabela 1: analysis_runs (rozszerzona)
+```sql
+CREATE TABLE analysis_runs (
+    run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_date TIMESTAMP NOT NULL,
+    -- Wersjonowanie reguł
+    selection_rules_version TEXT NOT NULL,  -- "v1.0", "v2.0"
+    informational_columns_version TEXT NOT NULL,  -- "v1.0", "v2.0"
+    -- Statystyki
+    stage1_count INTEGER,
+    stage2_count INTEGER,
+    final_count INTEGER,
+    status TEXT,
+    notes TEXT
+);
+```
+
+### Tabela 2: selection_rules_versions (NOWA)
+```sql
+CREATE TABLE selection_rules_versions (
+    version TEXT PRIMARY KEY,  -- "v1.0", "v2.0"
+    rules_json JSON NOT NULL,  -- Pełna konfiguracja reguł
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    description TEXT
+);
+```
+
+### Tabela 3: informational_columns_versions (NOWA)
+```sql
+CREATE TABLE informational_columns_versions (
+    version TEXT PRIMARY KEY,  -- "v1.0", "v2.0"
+    columns_json JSON NOT NULL,  -- Lista kolumn informacyjnych
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    description TEXT
+);
+```
+
+### Tabela 4: stage1_companies (nowa struktura)
+```sql
+CREATE TABLE stage1_companies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER,
+    ticker TEXT NOT NULL,
+    -- Dane selekcji (JSON - elastyczne)
+    selection_data JSON NOT NULL,  -- {"country": "US", "quality_rating": "1200%", ...}
+    -- Dane informacyjne (JSON - elastyczne)
+    informational_data JSON NOT NULL,  -- {"date_edited": "7/24/2025", "company": "BHB", ...}
+    -- Dane Etapu 2 (niezmienne)
+    stochastic_1m REAL,
+    stochastic_1w REAL,
+    stage2_passed BOOLEAN,
+    condition_1m BOOLEAN,
+    condition_1w BOOLEAN,
+    stage2_error TEXT,
+    final_selection BOOLEAN,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (run_id) REFERENCES analysis_runs (run_id)
+);
+```
+
+---
+
+## PRZYKŁAD DANYCH DLA SCENARIUSZA
+
+### Tabela: selection_rules_versions
+```json
+// v1.0 (pierwsze 3 miesiące)
+{
+  "country": {"column": "Country", "operator": "in", "values": ["US", "UK", "Canada"]},
+  "quality_rating": {"column": "Quality Rating", "operator": "in", "values": ["1200%", "1300%"]},
+  "yield": {"column": "Yield", "operator": ">=", "value": "4%"}
+}
+
+// v2.0 (po zmianie)
+{
+  "country": {"column": "Country", "operator": "in", "values": ["US", "UK", "Canada"]},
+  "quality_rating": {"column": "Quality Rating", "operator": "in", "values": ["1200%", "1300%"]},
+  "yield": {"column": "Yield", "operator": ">=", "value": "4%"},
+  "new_parameter": {"column": "New Column", "operator": ">=", "value": "100"}
+}
+```
+
+### Tabela: informational_columns_versions
+```json
+// v1.0 (pierwsze 3 miesiące)
+{
+  "date_edited": "Date Edited",
+  "company": "Company", 
+  "sector": "Sector"
+}
+
+// v2.0 (po zmianie)
+{
+  "company": "Company",
+  "sector": "Sector",
+  "new_field1": "New Field 1",
+  "new_field2": "New Field 2"
+}
+```
+
+### Tabela: analysis_runs
+```
+run_id: 1, run_date: 2025-01-01, selection_rules_version: "v1.0", informational_columns_version: "v1.0"
+run_id: 90, run_date: 2025-03-31, selection_rules_version: "v1.0", informational_columns_version: "v1.0"
+run_id: 91, run_date: 2025-04-01, selection_rules_version: "v2.0", informational_columns_version: "v2.0"
+run_id: 150, run_date: 2025-05-31, selection_rules_version: "v2.0", informational_columns_version: "v2.0"
+```
+
+### Tabela: stage1_companies (przykład dla spółki XYZ)
+```json
+// Uruchomienie 1 (v1.0)
+{
+  "selection_data": {"country": "US", "quality_rating": "1200%", "yield": "4.5%"},
+  "informational_data": {"date_edited": "1/1/2025", "company": "XYZ Corp", "sector": "Finance"}
+}
+
+// Uruchomienie 91 (v2.0) 
+{
+  "selection_data": {"country": "US", "quality_rating": "1200%", "yield": "4.5%", "new_parameter": "150"},
+  "informational_data": {"company": "XYZ Corp", "sector": "Finance", "new_field1": "Value1", "new_field2": "Value2"}
+}
+```
+
+---
+
+## FUNKCJE DO RAPORTOWANIA
+
+### 1. Historia spółki z wersjonowaniem
+```python
+def get_company_history_with_versions(ticker):
+    """
+    Zwraca historię spółki z informacją o wersjach reguł
+    """
+    # Pobierz wszystkie uruchomienia spółki
+    # Dla każdego uruchomienia pobierz wersje reguł
+    # Zwróć dane z odpowiednimi wersjami
+```
+
+### 2. Raport okresowy
+```python
+def get_company_period_report(ticker, start_date, end_date):
+    """
+    Raport spółki w określonym okresie z wersjonowaniem
+    """
+    # Pobierz uruchomienia w okresie
+    # Dla każdego uruchomienia zastosuj odpowiednie wersje reguł
+    # Zwróć spójny raport
+```
+
+---
+
+## ZALETY TEJ STRUKTURY
+
+✅ **Pełna historia:** Każde uruchomienie ma swoje wersje reguł  
+✅ **Elastyczność:** Możesz zmieniać reguły bez wpływu na historię  
+✅ **Raporty:** System wie jakie reguły obowiązywały w danym dniu  
+✅ **Skalowalność:** Łatwo dodać nowe wersje reguł  
+✅ **Integralność:** Dane są spójne z regułami które je wygenerowały  
+
+---
+
+## IMPLEMENTACJA
+
+### Krok 1: Migracja struktury
+### Krok 2: Migracja istniejących danych
+### Krok 3: Aktualizacja kodu
+### Krok 4: Testy z wersjonowaniem
+
+**Ta struktura obsłuży Twój scenariusz w 100%!** 🎯 

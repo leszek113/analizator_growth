@@ -1,0 +1,25 @@
+# Konfiguracja kolumn danych z Google Sheet
+# Podział na kolumny selekcji i kolumny informacyjne
+
+# Kolumny używane w selekcji (nie zmieniaj bez konsultacji)
+selection_columns:
+  country: "Country"
+  quality_rating: "Quality Rating (out Of 13)"
+  yield: "Yield"
+  dividend_growth_streak: "Dividend Growth Streak (Years)"
+  sp_credit_rating: "S&P Credit Rating"
+  dk_rating: "DK Rating"
+
+# Kolumny informacyjne (możesz edytować)
+informational_columns:
+  date_edited: "Date Edited"
+  company: "Company"
+  sector: "Sector"
+  # Możesz dodać więcej kolumn informacyjnych tutaj
+  # current_price: "Current Price"
+  # market_cap: "Market Cap (Billion)"
+  # payout_ratio: "Payout Ratio"
+  # debt_capital: "Debt/Capital"
+
+# Kolumna z tickerem (używana do identyfikacji spółek)
+ticker_column: "Ticker" 

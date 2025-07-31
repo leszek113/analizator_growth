@@ -1,0 +1,117 @@
+# PROPOZYCJA NOWEJ STRUKTURY BAZY DANYCH
+# Rozwiązanie problemu z elastycznością kolumn informacyjnych
+
+## OPCJA 1: STRUKTURA JSON (REKOMENDOWANA)
+
+### Tabela: analysis_runs (bez zmian)
+```sql
+CREATE TABLE analysis_runs (
+    run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_date TIMESTAMP NOT NULL,
+    stage1_count INTEGER,
+    stage2_count INTEGER,
+    final_count INTEGER,
+    status TEXT,
+    notes TEXT
+);
+```
+
+### Tabela: stage1_companies (nowa struktura)
+```sql
+CREATE TABLE stage1_companies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER,
+    ticker TEXT NOT NULL,
+    -- Dane selekcji (niezmienne)
+    country TEXT,
+    quality_rating TEXT,
+    yield_value TEXT,
+    dividend_growth_streak TEXT,
+    sp_credit_rating TEXT,
+    dk_rating TEXT,
+    -- Dane informacyjne (elastyczne - JSON)
+    informational_data JSON,  -- {"date_edited": "7/24/2025", "company": "BHB", "sector": "Finance"}
+    -- Dane Etapu 2 (niezmienne)
+    stochastic_1m REAL,
+    stochastic_1w REAL,
+    stage2_passed BOOLEAN,
+    condition_1m BOOLEAN,
+    condition_1w BOOLEAN,
+    stage2_error TEXT,
+    final_selection BOOLEAN,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (run_id) REFERENCES analysis_runs (run_id)
+);
+```
+
+### Zalety:
+✅ **Elastyczność:** Możesz dodawać/usuwać kolumny informacyjne bez problemów  
+✅ **Historia:** Stare dane zachowują swoje wartości  
+✅ **Wydajność:** Nadal jedna tabela  
+✅ **Kompatybilność:** SQLite obsługuje JSON  
+
+### Przykład użycia:
+```python
+# Zapisywanie
+informational_data = {
+    "date_edited": "7/24/2025",
+    "company": "Bar Harbor Bankshares", 
+    "sector": "Finance"
+}
+
+# Odczytywanie
+import json
+data = json.loads(row['informational_data'])
+company_name = data.get('company', 'N/A')
+```
+
+## OPCJA 2: OSOBNA TABELA DLA DANYCH INFORMACYJNYCH
+
+### Tabela: informational_data
+```sql
+CREATE TABLE informational_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER,  -- FK do stage1_companies
+    column_name TEXT,    -- "date_edited", "company", "sector"
+    column_value TEXT,   -- wartość
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES stage1_companies (id)
+);
+```
+
+### Zalety:
+✅ **Maksymalna elastyczność**  
+❌ **Złożoność:** Więcej JOIN-ów  
+❌ **Wydajność:** Wolniejsze zapytania  
+
+## OPCJA 3: HYBRYDOWA (AKTUALNA + MIGRACJA)
+
+### Zachować obecną strukturę + dodać JSON:
+```sql
+-- Dodaj kolumnę JSON do istniejącej tabeli
+ALTER TABLE stage1_companies ADD COLUMN additional_info JSON;
+```
+
+### Zalety:
+✅ **Kompatybilność wsteczna**  
+✅ **Stopniowa migracja**  
+❌ **Duplikacja danych**  
+
+---
+
+## REKOMENDACJA: OPCJA 1 (JSON)
+
+**Dlaczego JSON jest najlepszy:**
+1. **Elastyczność:** Możesz dodawać/usuwać kolumny bez problemów
+2. **Historia:** Stare dane zachowują swoje wartości
+3. **Wydajność:** Nadal jedna tabela, szybkie zapytania
+4. **Prostota:** Łatwe w implementacji i utrzymaniu
+
+**Przykład migracji:**
+```python
+# Stare dane
+"company_name": "BHB", "sector": "Finance", "date_edited": "7/24/2025"
+
+# Nowe dane (JSON)
+"informational_data": '{"company": "BHB", "sector": "Finance", "date_edited": "7/24/2025"}'
+``` 

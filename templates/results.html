@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+
+{% block title %}Wyniki selekcji - Analizator Rynku{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">🎯 Wyniki selekcji</h5>
+            </div>
+            <div class="card-body">
+                <!-- Filtry -->
+                <form method="GET" class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="date" class="form-label">Data:</label>
+                        <input type="date" class="form-control" id="date" name="date" 
+                               value="{{ date_filter }}" placeholder="Wszystkie daty">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="ticker" class="form-label">Ticker:</label>
+                        <input type="text" class="form-control" id="ticker" name="ticker" 
+                               value="{{ ticker_filter }}" placeholder="Filtruj po tickerze">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">Filtruj</button>
+                        <a href="{{ url_for('results') }}" class="btn btn-outline-secondary">Wyczyść</a>
+                    </div>
+                </form>
+
+                <!-- Wyniki -->
+                {% if results %}
+                    <div class="table-responsive">
+                        <table id="resultsTable" class="table table-striped">
+                            <thead>
+                                <tr style="font-size: 0.85rem;">
+                                    <th>Ticker</th>
+                                    <th>Nazwa</th>
+                                    <th>Sektor</th>
+                                    <th>Kraj</th>
+                                    <th>QRating</th>
+                                    <th>DivGrStr</th>
+                                    <th>Date Edited</th>
+                                    <th>Yield Net</th>
+                                    <th>YieldNet 5% Price</th>
+                                    <th>Sto 36,12,12 1M</th>
+                                    <th>Sto 36,12,12 1W</th>
+                                    <th>Notatki</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody style="font-size: 0.8rem;">
+                                {% for company in results %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ company.ticker }}</strong>
+                                    </td>
+                                    <td>{{ company.informational_data_parsed.get('company', 'N/A') }}</td>
+                                    <td>{{ company.informational_data_parsed.get('sector', 'N/A') }}</td>
+                                    <td>{{ company.selection_data_parsed.get('country', 'N/A') }}</td>
+                                    <td>
+                                        {% set qrating = company.selection_data_parsed.get('quality_rating', 'N/A') %}
+                                        {% if qrating != 'N/A' and '%' in qrating %}
+                                            {{ (qrating|replace('%', '')|float / 100)|int }}
+                                        {% else %}
+                                            {{ qrating }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ company.selection_data_parsed.get('dividend_growth_streak', 'N/A') }}</td>
+                                    <td>{{ company.informational_data_parsed.get('date_edited', 'N/A') }}</td>
+                                    <td>
+                                        {% if company.yield_netto %}
+                                            {{ "%.2f"|format(company.yield_netto) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.price_for_5_percent_yield %}
+                                            ${{ "%.2f"|format(company.price_for_5_percent_yield) }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.stochastic_1m %}
+                                            <span class="badge {% if company.stochastic_1m < 30 %}bg-success{% else %}bg-warning{% endif %}">
+                                                {{ "%.1f"|format(company.stochastic_1m) }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.stochastic_1w %}
+                                            <span class="badge {% if company.stochastic_1w < 30 %}bg-success{% else %}bg-warning{% endif %}">
+                                                {{ "%.1f"|format(company.stochastic_1w) }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="notes-badge" onclick="showNotes('{{ company.ticker }}')" style="cursor: pointer;">
+                                            N-{{ "%02d"|format(company.notes_count) }}
+                                        </span>
+                                        <button class="btn btn-sm btn-outline-primary ms-1" onclick="addNote('{{ company.ticker }}')" title="Dodaj notatkę">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('company_history', ticker=company.ticker) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            Historia
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Statystyki wyników -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Statystyki wyników</h6>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <h4 class="text-primary">{{ results|length }}</h4>
+                                            <small class="text-muted">Spółek w selekcji</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h4 class="text-info">{{ results|selectattr('stage2_passed', 'equalto', True)|list|length }}</h4>
+                                            <small class="text-muted">Dobre warunki Stochastic</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Eksport</h6>
+                                    <button class="btn btn-success" onclick="exportToCSV()">
+                                        📊 Eksportuj do CSV
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="text-center text-muted">
+                        <p>Brak wyników do wyświetlenia</p>
+                        {% if date_filter or ticker_filter %}
+                            <p>Spróbuj zmienić filtry</p>
+                        {% else %}
+                            <button class="btn btn-primary" onclick="runAnalysis()">
+                                Uruchom analizę
+                            </button>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- DataTables CSS i JS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<style>
+    /* DataTables Dark Mode */
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_length,
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter,
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_info,
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_processing,
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate {
+        color: #e9ecef;
+    }
+    
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input {
+        background-color: #495057;
+        border-color: #6c757d;
+        color: #e9ecef;
+    }
+    
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_filter input:focus {
+        background-color: #495057;
+        border-color: #0d6efd;
+        color: #e9ecef;
+    }
+    
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_length select {
+        background-color: #495057;
+        border-color: #6c757d;
+        color: #e9ecef;
+    }
+    
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button {
+        color: #e9ecef !important;
+        background-color: #2d2d2d;
+        border-color: #495057;
+    }
+    
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background-color: #495057;
+        border-color: #6c757d;
+        color: #e9ecef !important;
+    }
+    
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff !important;
+    }
+    
+    [data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+        color: #6c757d !important;
+        background-color: #2d2d2d;
+        border-color: #495057;
+    }
+
+    .notes-badge {
+        background-color: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        font-weight: bold;
+    }
+    
+    .notes-badge:hover {
+        background-color: #0056b3;
+    }
+    
+    .list-group-item-action:hover {
+        background-color: #f8f9fa;
+    }
+    
+    [data-bs-theme="dark"] .notes-badge {
+        background-color: #0d6efd;
+    }
+    
+    [data-bs-theme="dark"] .notes-badge:hover {
+        background-color: #0b5ed7;
+    }
+    
+    [data-bs-theme="dark"] .list-group-item-action:hover {
+        background-color: #2b3035;
+    }
+</style>
+<script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+// Inicjalizacja DataTables z sortowaniem
+$(document).ready(function() {
+    $('#resultsTable').DataTable({
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pl.json'
+        },
+        pageLength: 25,
+        order: [[7, 'desc']], // Sortuj domyślnie po Yield Net (kolumna 7) malejąco
+        columnDefs: [
+            {
+                targets: [0, 1, 2, 3, 4, 5, 6], // Kolumny tekstowe
+                type: 'string'
+            },
+            {
+                targets: [7, 8, 9, 10], // Kolumny numeryczne (Yield Net, Cena 5%, Stochastic)
+                type: 'num',
+                render: function(data, type, row) {
+                    if (type === 'sort') {
+                        // Dla sortowania - wyciągnij tylko liczbę
+                        return parseFloat(data.replace(/[^\d.-]/g, '')) || 0;
+                    }
+                    return data; // Dla wyświetlania - oryginalny tekst
+                }
+            },
+            {
+                targets: [11, 12], // Kolumny Notatki i Akcje - nie sortuj
+                orderable: false
+            }
+        ],
+        responsive: true,
+        dom: 'frtip'
+    });
+});
+
+function exportToCSV() {
+    // Pobierz dane z tabeli
+    const table = document.querySelector('table');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    let csv = 'Ticker,Nazwa,Sektor,Kraj,QRating,DivGrStr,Date Edited,Yield Net,YieldNet 5% Price,Sto 36,12,12 1M,Sto 36,12,12 1W,Notatki\n';
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        
+        cells.forEach((cell, index) => {
+            if (index < 12) { // Bez kolumny "Akcje"
+                let text = cell.textContent.trim();
+                // Usuń emoji i formatowanie
+                text = text.replace(/[✅❌]/g, '').replace(/bg-\w+/g, '').trim();
+                rowData.push(`"${text}"`);
+            }
+        });
+        
+        csv += rowData.join(',') + '\n';
+    });
+    
+    // Pobierz plik
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'wyniki_selekcji.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+    <!-- Modal dla listy notatek -->
+    <div class="modal fade" id="notesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Notatki dla <span id="notesTicker"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="notesList"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal dla dodawania/edycji notatki -->
+    <div class="modal fade" id="noteEditModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noteEditTitle">Dodaj notatkę</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="noteForm">
+                        <div class="mb-3">
+                            <label for="noteTitle" class="form-label">Tytuł (opcjonalny)</label>
+                            <input type="text" class="form-control" id="noteTitle" placeholder="Krótki tytuł notatki">
+                        </div>
+                        <div class="mb-3">
+                            <label for="noteContent" class="form-label">Treść *</label>
+                            <textarea class="form-control" id="noteContent" rows="5" placeholder="Treść notatki..." required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNote()">Zapisz</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal dla wyświetlania notatki -->
+    <div class="modal fade" id="noteViewModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noteViewTitle">Notatka</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="noteViewContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" id="editNoteBtn">Edytuj</button>
+                    <button type="button" class="btn btn-danger" id="deleteNoteBtn">Usuń</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Zmienne globalne dla notatek
+        let currentTicker = '';
+        let currentNoteNumber = null;
+        let isEditMode = false;
+
+        // Funkcje dla notatek
+        function showNotes(ticker) {
+            currentTicker = ticker;
+            document.getElementById('notesTicker').textContent = ticker;
+            
+            fetch(`/api/notes/${ticker}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayNotesList(data.notes);
+                        new bootstrap.Modal(document.getElementById('notesModal')).show();
+                    } else {
+                        showAlert('Błąd podczas pobierania notatek', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Błąd podczas pobierania notatek', 'danger');
+                });
+        }
+
+        function displayNotesList(notes) {
+            const notesList = document.getElementById('notesList');
+            
+            if (notes.length === 0) {
+                notesList.innerHTML = '<p class="text-muted">Brak notatek dla tej spółki.</p>';
+                return;
+            }
+            
+            let html = '<div class="list-group">';
+            notes.forEach(note => {
+                const date = new Date(note.created_at).toLocaleDateString('pl-PL');
+                html += `
+                    <div class="list-group-item list-group-item-action" onclick="viewNote('${currentTicker}', ${note.note_number})">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">#${note.note_number} - ${note.title || 'Bez tytułu'}</h6>
+                            <small>${date}</small>
+                        </div>
+                        <p class="mb-1">${note.content.substring(0, 100)}${note.content.length > 100 ? '...' : ''}</p>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            notesList.innerHTML = html;
+        }
+
+        function addNote(ticker) {
+            currentTicker = ticker;
+            currentNoteNumber = null;
+            isEditMode = false;
+            
+            document.getElementById('noteEditTitle').textContent = 'Dodaj notatkę';
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+            
+            new bootstrap.Modal(document.getElementById('noteEditModal')).show();
+        }
+
+        function viewNote(ticker, noteNumber) {
+            currentTicker = ticker;
+            currentNoteNumber = noteNumber;
+            
+            fetch(`/api/notes/${ticker}/${noteNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const note = data.note;
+                        document.getElementById('noteViewTitle').textContent = `Notatka #${noteNumber} - ${note.title || 'Bez tytułu'}`;
+                        document.getElementById('noteViewContent').innerHTML = `
+                            <p><strong>Utworzona:</strong> ${new Date(note.created_at).toLocaleString('pl-PL')}</p>
+                            <p><strong>Ostatnia edycja:</strong> ${new Date(note.updated_at).toLocaleString('pl-PL')}</p>
+                            <hr>
+                            <div style="white-space: pre-wrap;">${note.content}</div>
+                        `;
+                        
+                        // Ustaw funkcje dla przycisków
+                        document.getElementById('editNoteBtn').onclick = () => editNote(ticker, noteNumber);
+                        document.getElementById('deleteNoteBtn').onclick = () => deleteNote(ticker, noteNumber);
+                        
+                        new bootstrap.Modal(document.getElementById('noteViewModal')).show();
+                    } else {
+                        showAlert('Błąd podczas pobierania notatki', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Błąd podczas pobierania notatki', 'danger');
+                });
+        }
+
+        function editNote(ticker, noteNumber) {
+            currentTicker = ticker;
+            currentNoteNumber = noteNumber;
+            isEditMode = true;
+            
+            fetch(`/api/notes/${ticker}/${noteNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const note = data.note;
+                        document.getElementById('noteEditTitle').textContent = 'Edytuj notatkę';
+                        document.getElementById('noteTitle').value = note.title || '';
+                        document.getElementById('noteContent').value = note.content;
+                        
+                        // Zamknij modal wyświetlania i otwórz modal edycji
+                        bootstrap.Modal.getInstance(document.getElementById('noteViewModal')).hide();
+                        new bootstrap.Modal(document.getElementById('noteEditModal')).show();
+                    } else {
+                        showAlert('Błąd podczas pobierania notatki', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Błąd podczas pobierania notatki', 'danger');
+                });
+        }
+
+        function saveNote() {
+            const title = document.getElementById('noteTitle').value.trim();
+            const content = document.getElementById('noteContent').value.trim();
+            
+            if (!content) {
+                showAlert('Treść notatki jest wymagana', 'warning');
+                return;
+            }
+            
+            const url = isEditMode 
+                ? `/api/notes/${currentTicker}/${currentNoteNumber}`
+                : `/api/notes/${currentTicker}`;
+            
+            const method = isEditMode ? 'PUT' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ title, content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('noteEditModal')).hide();
+                    
+                    // Odśwież listę notatek jeśli jest otwarta
+                    if (document.getElementById('notesModal').classList.contains('show')) {
+                        showNotes(currentTicker);
+                    }
+                    
+                    // Odśwież stronę aby zaktualizować liczniki notatek
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Błąd podczas zapisywania notatki', 'danger');
+            });
+        }
+
+        function deleteNote(ticker, noteNumber) {
+            if (!confirm('Czy na pewno chcesz usunąć tę notatkę?')) {
+                return;
+            }
+            
+            fetch(`/api/notes/${ticker}/${noteNumber}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('noteViewModal')).hide();
+                    
+                    // Odśwież listę notatek jeśli jest otwarta
+                    if (document.getElementById('notesModal').classList.contains('show')) {
+                        showNotes(ticker);
+                    }
+                    
+                    // Odśwież stronę aby zaktualizować liczniki notatek
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Błąd podczas usuwania notatki', 'danger');
+            });
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    </script>
+{% endblock %} 
