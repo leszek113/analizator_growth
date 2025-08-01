@@ -14,7 +14,7 @@ class DatabaseManager:
     Klasa do zarządzania bazą danych SQLite dla analizatora rynku
     """
     
-    def __init__(self, db_path: str = "market_analyzer.db"):
+    def __init__(self, db_path: str = "data/analizator_rynku.db"):
         """
         Inicjalizuje menedżer bazy danych
         
@@ -145,7 +145,7 @@ class DatabaseManager:
                 # Usuń poprzednie uruchomienia z dzisiaj (jedno uruchomienie dziennie)
                 today = datetime.now().date()
                 cursor.execute("""
-                    SELECT run_id FROM analysis_runs 
+                    SELECT id FROM analysis_runs 
                     WHERE DATE(run_date) = ?
                     ORDER BY run_date DESC
                 """, (today,))
@@ -158,7 +158,7 @@ class DatabaseManager:
                         cursor.execute("DELETE FROM stage1_companies WHERE run_id = ?", (run_id,))
                         
                         # Usuń uruchomienie
-                        cursor.execute("DELETE FROM analysis_runs WHERE run_id = ?", (run_id,))
+                        cursor.execute("DELETE FROM analysis_runs WHERE id = ?", (run_id,))
                     
                     logger.info(f"Usunięto {len(existing_runs)} poprzednich uruchomień z dzisiaj")
                 
@@ -252,9 +252,9 @@ class DatabaseManager:
                         # Pola Yield
                         'yield': yield_value,
                         'yield_netto': yield_netto_value,
-                        # Pola cenowe - używamy nowych nazw kolumn
-                        'current_price_new': current_price,
-                        'price_for_5_percent_yield_new': price_for_5_percent_yield,
+                        # Pola cenowe
+                        'current_price': current_price,
+                        'price_for_5_percent_yield': price_for_5_percent_yield,
                         # Informacje o Etapie 2
                         'stochastic_1m': stage2_data['stochastic_1m'].iloc[0] if not stage2_data.empty else None,
                         'stochastic_1w': stage2_data['stochastic_1w'].iloc[0] if not stage2_data.empty else None,
@@ -426,19 +426,18 @@ class DatabaseManager:
                     SELECT 
                         ar.run_date,
                         sc.ticker,
-                        sc.company_name,
-                        sc.quality_rating,
-                        sc.yield_value,
-                        sc.dividend_growth_streak,
-                        sc.sp_credit_rating,
-                        sc.dk_rating,
+                        sc.selection_data,
+                        sc.informational_data,
+                        sc.yield,
+                        sc.yield_netto,
+                        sc.current_price,
+                        sc.price_for_5_percent_yield,
                         sc.stochastic_1m,
                         sc.stochastic_1w,
-                        sc.stage2_error,
-                        sc.final_selection,
-                        ar.run_id
+                        sc.stage2_passed,
+                        ar.id as run_id
                     FROM stage1_companies sc
-                    JOIN analysis_runs ar ON sc.run_id = ar.run_id
+                    JOIN analysis_runs ar ON sc.run_id = ar.id
                     WHERE sc.ticker = ?
                     ORDER BY ar.run_date DESC
                     LIMIT ?
@@ -464,12 +463,12 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 query = """
                     SELECT s.ticker, s.selection_data, s.informational_data,
-                           s.yield, s.yield_netto, s.current_price_new as current_price,
-                           s.price_for_5_percent_yield_new as price_for_5_percent_yield,
+                           s.yield, s.yield_netto, s.current_price,
+                           s.price_for_5_percent_yield,
                            s.stochastic_1m, s.stochastic_1w, s.stage2_passed,
                            a.run_date
                     FROM stage1_companies s
-                    JOIN analysis_runs a ON s.run_id = a.run_id
+                    JOIN analysis_runs a ON s.run_id = a.id
                     WHERE DATE(a.run_date) = ?
                     ORDER BY s.ticker
                 """
@@ -556,7 +555,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 today = datetime.now().date()
                 cursor.execute("""
-                    SELECT run_id, run_date, selected_count, notes,
+                    SELECT id, run_date, selected_count, notes,
                            selection_rules_version, informational_columns_version
                     FROM analysis_runs 
                     WHERE DATE(run_date) = ?
@@ -595,14 +594,14 @@ class DatabaseManager:
                 logger.warning("Brak uruchomień analizy")
                 return pd.DataFrame()
             
-            run_id = int(latest_run.iloc[0]['run_id'])
+            run_id = int(latest_run.iloc[0]['id'])
             
             # Spółki Etapu 1 z danymi selekcji i informacjami o Etapie 2
             with sqlite3.connect(self.db_path) as conn:
                 query = """
                     SELECT ticker, selection_data, informational_data, 
-                           yield, yield_netto, current_price_new as current_price, 
-                           price_for_5_percent_yield_new as price_for_5_percent_yield,
+                           yield, yield_netto, current_price, 
+                           price_for_5_percent_yield,
                            stochastic_1m, stochastic_1w, stage2_passed
                     FROM stage1_companies 
                     WHERE run_id = ?
@@ -645,7 +644,7 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 query = """
-                    SELECT run_id, run_date, selected_count, notes, 
+                    SELECT id, run_date, selected_count, notes, 
                            selection_rules_version, informational_columns_version
                     FROM analysis_runs 
                     ORDER BY run_date DESC 
@@ -671,12 +670,12 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 query = """
-                    SELECT sc.run_id, ar.run_date, sc.ticker, sc.final_selection,
+                    SELECT sc.run_id, ar.run_date, sc.ticker,
                            sc.stochastic_1m, sc.stochastic_1w, sc.stage2_passed,
                            ar.selection_rules_version, ar.informational_columns_version,
                            sc.selection_data, sc.informational_data
                     FROM stage1_companies sc
-                    JOIN analysis_runs ar ON sc.run_id = ar.run_id
+                    JOIN analysis_runs ar ON sc.run_id = ar.id
                     WHERE sc.ticker = ?
                     ORDER BY ar.run_date DESC
                     LIMIT ?
@@ -1056,12 +1055,12 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 query = """
                     SELECT s.ticker, s.selection_data, s.informational_data,
-                           s.yield, s.yield_netto, s.current_price_new as current_price, 
-                           s.price_for_5_percent_yield_new as price_for_5_percent_yield,
+                           s.yield, s.yield_netto, s.current_price, 
+                           s.price_for_5_percent_yield,
                            s.stochastic_1m, s.stochastic_1w, s.stage2_passed,
                            a.run_date
                     FROM stage1_companies s
-                    JOIN analysis_runs a ON s.run_id = a.run_id
+                    JOIN analysis_runs a ON s.run_id = a.id
                     WHERE s.ticker = ?
                     ORDER BY a.run_date DESC
                 """
@@ -1099,7 +1098,7 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 query = """
-                    SELECT run_id, run_date, selected_count, notes,
+                    SELECT id, run_date, selected_count, notes,
                            selection_rules_version, informational_columns_version
                     FROM analysis_runs 
                     ORDER BY run_date DESC 

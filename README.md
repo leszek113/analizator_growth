@@ -62,16 +62,26 @@ pip install -r requirements.txt
 
 ## 🚀 Uruchomienie
 
-### Tryb deweloperski
+### macOS (Środowisko deweloperskie)
+Szczegółowa instrukcja instalacji i zarządzania aplikacją na macOS znajduje się w pliku: [docs/macos-installation.md](docs/macos-installation.md)
+
+**Szybki start:**
 ```bash
+# Aktywacja środowiska wirtualnego
+source venv/bin/activate
+
+# Uruchomienie aplikacji
 python app.py
 ```
 Aplikacja będzie dostępna pod adresem: `http://localhost:5001`
 
-### Tryb produkcyjny
+### Ubuntu/Docker (Środowisko testowe)
+Szczegółowa instrukcja dla środowiska Docker znajduje się w pliku: [docs/docker-installation.md](docs/docker-installation.md)
+
+**Szybki start:**
 ```bash
-export FLASK_ENV=production
-python app.py
+# Uruchomienie kontenera
+docker run -d --name analizator-rynku-v1 -p 5001:5001 leszek113/analizator-rynku:v1.0-amd64-fixed2
 ```
 
 ## 📖 Użycie
