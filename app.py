@@ -12,6 +12,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src.database_manager import DatabaseManager
 from src.stage2_analysis import main as run_analysis
+from src.auto_scheduler import get_auto_scheduler, init_auto_scheduler
 import logging
 
 # Konfiguracja logowania
@@ -143,6 +144,65 @@ def results():
     except Exception as e:
         logger.error(f"Błąd w results: {e}")
         return render_template('results.html', companies=[], error=str(e))
+
+@app.route('/notes')
+def notes():
+    """Wyświetla listę spółek z notatkami"""
+    try:
+        ticker_filter = request.args.get('ticker', '')
+        
+        # Pobierz spółki z notatkami
+        if ticker_filter:
+            # Filtrowanie po tickerze
+            companies = db_manager.get_companies_by_ticker(ticker_filter)
+        else:
+            # Wszystkie spółki z najnowszego uruchomienia
+            companies = db_manager.get_latest_results()
+        
+        if companies.empty:
+            logger.warning("Brak spółek do wyświetlenia w notatkach")
+            return render_template('notes.html', companies=[], message="Brak spółek do wyświetlenia")
+        
+        # Filtruj tylko spółki z notatkami
+        companies_with_notes = []
+        for _, row in companies.iterrows():
+            ticker = row['ticker']
+            notes_count = db_manager.get_company_notes_count(ticker)
+            
+            if notes_count > 0:  # Tylko spółki z notatkami
+                company_data = {
+                    'ticker': ticker,
+                    'notes_count': notes_count,
+                    'selection_data_parsed': row.get('selection_data_parsed', {}),
+                    'informational_data_parsed': row.get('informational_data_parsed', {}),
+                    'yield': row.get('yield'),
+                    'yield_netto': row.get('yield_netto'),
+                    'current_price': row.get('current_price'),
+                    'price_for_5_percent_yield': row.get('price_for_5_percent_yield'),
+                    'stage2_passed': row.get('stage2_passed')
+                }
+                
+                # Pobierz ostatnią notatkę
+                notes = db_manager.get_company_notes(ticker)
+                if not notes.empty:
+                    latest_note = notes.iloc[-1]  # Ostatnia notatka
+                    company_data['latest_note'] = {
+                        'title': latest_note.get('title', ''),
+                        'content': latest_note.get('content', ''),
+                        'created_at': latest_note.get('created_at', ''),
+                        'note_number': latest_note.get('note_number', 0)
+                    }
+                
+                companies_with_notes.append(company_data)
+        
+        logger.info(f"Przekazuję do szablonu {len(companies_with_notes)} spółek z notatkami")
+        return render_template('notes.html', 
+                             companies=companies_with_notes,
+                             ticker_filter=ticker_filter)
+        
+    except Exception as e:
+        logger.error(f"Błąd w notes: {e}")
+        return render_template('notes.html', companies=[], error=str(e))
 
 @app.route('/history/<ticker>')
 def company_history(ticker):
@@ -542,6 +602,77 @@ def get_company_notes_count(ticker):
         logger.error(f"Błąd podczas pobierania liczby notatek dla {ticker}: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ===== API ENDPOINTS DLA AUTOMATYCZNEGO URZUCAMIANIA =====
+
+@app.route('/api/auto-schedule/status')
+def get_auto_schedule_status():
+    """Zwraca status automatycznego uruchamiania (publiczny)"""
+    scheduler = get_auto_scheduler()
+    status = scheduler.get_status()
+    return jsonify(status)
+
+@app.route('/api/auto-schedule/health')
+def get_auto_schedule_health():
+    """Zwraca health check automatycznego uruchamiania (publiczny)"""
+    scheduler = get_auto_scheduler()
+    status = scheduler.get_status()
+    
+    health = {
+        "status": "healthy" if status['scheduler_running'] else "unhealthy",
+        "enabled": status['enabled'],
+        "next_run": status['next_run'],
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    return jsonify(health)
+
+@app.route('/api/auto-schedule/history')
+def get_auto_schedule_history():
+    """Zwraca historię automatycznych uruchomień (publiczny)"""
+    scheduler = get_auto_scheduler()
+    limit = request.args.get('limit', 10, type=int)
+    history = scheduler.get_history(limit)
+    return jsonify({"history": history})
+
+@app.route('/api/auto-schedule/configure', methods=['POST'])
+def configure_auto_schedule():
+    """Konfiguruje automatyczne uruchamianie (chroniony)"""
+    # Prosta autoryzacja - w przyszłości można dodać proper auth
+    api_key = request.headers.get('X-API-Key')
+    if api_key != 'secret_key_123':  # TODO: Przenieść do konfiguracji
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    enabled = data.get('enabled', False)
+    time = data.get('time', '09:00')
+    timezone = data.get('timezone', 'Europe/Warsaw')
+    
+    scheduler = get_auto_scheduler()
+    scheduler.update_config(enabled, time, timezone)
+    
+    return jsonify({
+        "success": True,
+        "message": "Konfiguracja zaktualizowana",
+        "config": {
+            "enabled": enabled,
+            "time": time,
+            "timezone": timezone
+        }
+    })
+
+@app.route('/api/auto-schedule/run-now', methods=['POST'])
+def run_auto_analysis_now():
+    """Uruchamia analizę natychmiast (chroniony)"""
+    # Prosta autoryzacja
+    api_key = request.headers.get('X-API-Key')
+    if api_key != 'secret_key_123':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    scheduler = get_auto_scheduler()
+    result = scheduler.run_now()
+    
+    return jsonify(result)
+
 @app.errorhandler(404)
 def not_found(error):
     return render_template('404.html'), 404
@@ -551,4 +682,6 @@ def internal_error(error):
     return render_template('error.html', error='Błąd serwera'), 500
 
 if __name__ == '__main__':
+    # Inicjalizuj auto scheduler
+    init_auto_scheduler()
     app.run(debug=True, host='0.0.0.0', port=5001) 

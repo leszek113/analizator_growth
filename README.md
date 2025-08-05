@@ -5,8 +5,8 @@ Automatyczny system analizy i selekcji spółek dywidendowych z integracją Goog
 ## 🚀 Funkcjonalności
 
 ### 📊 Analiza i Selekcja
-- **Etap 1**: Automatyczna selekcja spółek z Google Sheets na podstawie reguł
-- **Etap 2**: Analiza Yahoo Finance + Stochastic Oscillator (dane informacyjne)
+- **Etap 1**: Automatyczna selekcja spółek z Google Sheets na podstawie reguł (JEDYNA SELEKCJA)
+- **Etap 2**: Analiza Yahoo Finance + Stochastic Oscillator (DODATKOWE DANE INFORMACYJNE)
 - **Wersjonowanie**: Pełna historia zmian reguł i danych
 - **Baza danych**: SQLite z archiwizacją wszystkich wyników
 
@@ -27,6 +27,7 @@ Automatyczny system analizy i selekcji spółek dywidendowych z integracją Goog
 - Python 3.8+
 - Google Sheets API (credentials)
 - Yahoo Finance API (darmowe)
+- APScheduler 3.10.4+
 
 ## 🛠️ Instalacja
 
@@ -108,6 +109,15 @@ docker run -d --name analizator-rynku-v1 -p 5001:5001 leszek113/analizator-rynku
 - Dodawaj, edytuj, usuwaj notatki
 - Historia notatek dla każdej spółki
 
+### 5. Automatyczne uruchamianie
+- Przejdź do `/config`
+- W sekcji "Automatyczne Uruchamianie":
+  - Włącz/wyłącz automatyczne uruchamianie
+  - Ustaw godzinę i strefę czasową
+  - Sprawdź status schedulera
+  - Przeglądaj historię uruchomień
+  - Uruchom analizę natychmiast
+
 ## 🏗️ Architektura
 
 ```
@@ -118,12 +128,20 @@ analizator_rynku/
 │   ├── import_google_sheet.py   # Import z Google Sheets
 │   ├── yahoo_finance_analyzer.py # Analiza Yahoo Finance
 │   ├── stage2_analysis.py       # Główna logika analizy
-│   └── stock_selector.py        # Selekcja spółek
+│   ├── stock_selector.py        # Selekcja spółek
+│   └── auto_scheduler.py        # Automatyczne uruchamianie
 ├── config/
 │   ├── selection_rules.yaml     # Reguły selekcji
-│   └── data_columns.yaml        # Konfiguracja kolumn
+│   ├── data_columns.yaml        # Kolumny danych
+│   └── auto_schedule.yaml       # Konfiguracja automatycznego uruchamiania
 ├── templates/                   # Szablony HTML
 ├── static/                      # CSS, JS, obrazy
+├── data/                        # Baza danych SQLite
+├── logs/                        # Logi aplikacji
+│   ├── analizator-rynku.log     # Główne logi
+│   ├── analizator-rynku-error.log # Logi błędów
+│   ├── auto_schedule.log        # Logi automatycznego uruchamiania
+│   └── auto_schedule_monitoring.json # JSON logi monitoringu
 └── secrets/                     # Pliki konfiguracyjne
 ```
 
@@ -135,6 +153,7 @@ analizator_rynku/
 - `selection_rules_versions` - wersje reguł
 - `informational_columns_versions` - wersje kolumn
 - `company_notes` - notatki spółek
+- `auto_schedule_runs` - historia automatycznych uruchomień
 
 ### Wersjonowanie
 - Każde uruchomienie ma przypisaną wersję reguł
@@ -171,12 +190,35 @@ informational_columns:
   - "Date Edited"
 ```
 
+### Automatyczne uruchamianie (`config/auto_schedule.yaml`)
+```yaml
+auto_schedule:
+  enabled: false
+  time: "09:00"
+  timezone: "Europe/Warsaw"
+  interval_hours: 24
+```
+
+## 🎯 Logika Analizy
+
+### Etap 1 - Selekcja (JEDYNA SELEKCJA)
+- Pobieranie danych z Google Sheets
+- Aplikowanie reguł selekcji (kraj, rating, yield, etc.)
+- **Wszystkie spółki które przejdą Etap 1 są w finalnej selekcji**
+
+### Etap 2 - Dane Informacyjne (NIE SELEKCJA)
+- Pobieranie dodatkowych danych z Yahoo Finance
+- Obliczanie Stochastic Oscillator
+- Obliczanie cen i yieldów netto
+- **Etap 2 NIE eliminuje spółek z selekcji - to tylko dodatkowe informacje**
+
 ## 🚀 Funkcje zaawansowane
 
-### Stochastic Oscillator
+### Stochastic Oscillator (Etap 2 - dane informacyjne)
 - Parametry: Period 36, Smoothing 12, SMA 12
 - Analiza 1M i 1W wykresów
 - Warunek: przynajmniej jeden < 30%
+- **UWAGA**: To są tylko dane informacyjne, nie wpływają na selekcję
 
 ### Yield Netto
 - Automatyczne obliczanie: `Yield * 0.81`
@@ -187,6 +229,82 @@ informational_columns:
 - Numerowane notatki per spółka
 - Edycja i usuwanie
 - Historia zmian
+
+### 🔄 Automatyczne Uruchamianie Analizy
+- **APScheduler**: Codzienne uruchamianie o zdefiniowanej godzinie
+- **Konfiguracja**: Włącz/wyłącz, czas, strefa czasowa
+- **Dual Logging**: Czytelne logi + JSON dla monitoringu
+- **Historia**: Pełna historia uruchomień w bazie danych
+- **API Endpointy**: Status, health check, konfiguracja
+- **UI**: Sekcja w Konfiguracji z zarządzaniem
+- **Metryki**: Czas wykonania, liczba spółek, status błędów
+
+## 🌐 API Endpointy
+
+### Automatyczne uruchamianie
+- `GET /api/auto-schedule/status` - Status schedulera (publiczny)
+- `GET /api/auto-schedule/health` - Health check (publiczny)
+- `GET /api/auto-schedule/history` - Historia uruchomień (publiczny)
+- `POST /api/auto-schedule/configure` - Konfiguracja (chroniony, X-API-Key)
+- `POST /api/auto-schedule/run-now` - Uruchom teraz (chroniony, X-API-Key)
+
+### Notatki
+- `GET /api/notes/<ticker>` - Pobierz notatki spółki
+- `POST /api/notes/<ticker>` - Dodaj notatkę
+- `PUT /api/notes/<ticker>/<number>` - Edytuj notatkę
+- `DELETE /api/notes/<ticker>/<number>` - Usuń notatkę
+
+## 📝 Logowanie
+
+### Logi aplikacji
+- `logs/analizator-rynku.log` - Główne logi aplikacji
+- `logs/analizator-rynku-error.log` - Logi błędów
+
+### Logi automatycznego uruchamiania
+- `logs/auto_schedule.log` - Czytelne logi (debugowanie)
+- `logs/auto_schedule_monitoring.json` - JSON logi (monitoring)
+
+### Format JSON logów
+```json
+{
+  "timestamp": "2025-08-01T17:18:00.649062",
+  "event": "auto_analysis_started",
+  "run_id": "auto_20250801_171842",
+  "status": "success",
+  "execution_time_seconds": 930,
+  "companies_count": 24
+}
+```
+
+## 🔍 Monitoring i Alerty
+
+### Metryki dostępne
+- **Status uruchomienia**: success/error/timeout
+- **Czas wykonania**: w sekundach
+- **Liczba spółek**: przetworzonych
+- **Błędy szczegółowe**: typ, wiadomość, recoverable
+- **Historia uruchomień**: pełna w bazie danych
+
+### Przygotowanie dla przyszłych alertów
+- JSON logi gotowe do parsowania
+- API endpointy dla health check
+- Struktura metryk zdefiniowana
+- Historia błędów w bazie danych
+
+### Przykłady użycia
+```bash
+# Sprawdzenie statusu
+curl http://localhost:5001/api/auto-schedule/health
+
+# Pobranie historii
+curl http://localhost:5001/api/auto-schedule/history?limit=5
+
+# Konfiguracja (wymaga API key)
+curl -X POST -H "X-API-Key: secret_key_123" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true, "time": "09:00"}' \
+  http://localhost:5001/api/auto-schedule/configure
+```
 
 ## 📝 Licencja
 

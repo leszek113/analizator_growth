@@ -1,0 +1,16 @@
+auto_schedule:
+  enabled: true
+  interval_hours: 24
+  max_retries: 3
+  retry_delay_minutes: 30
+  time: '10:00'
+  timezone: Europe/Warsaw
+last_run:
+  error_message: ''
+  success: false
+  timestamp: null
+notifications:
+  email_enabled: false
+  email_recipients: []
+  slack_enabled: false
+  slack_webhook_url: ''

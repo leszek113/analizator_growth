@@ -63,7 +63,7 @@
                                     <th>Sektor</th>
                                     <th>Stochastic 1M</th>
                                     <th>Stochastic 1W</th>
-                                    <th>Status</th>
+                                    <th>Stochastic OK</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -95,10 +95,10 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if company.final_selection %}
+                                        {% if company.stage2_passed %}
                                             <span class="badge bg-success">✅</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">❌</span>
+                                            <span class="badge bg-warning">⚠️</span>
                                         {% endif %}
                                     </td>
                                 </tr>

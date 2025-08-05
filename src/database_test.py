@@ -76,10 +76,10 @@ def test_database():
             else:
                 print(f"\n  🎯 Ostateczna selekcja: Brak spółek")
             
-            # Podsumowanie Etapu 2
+            # Podsumowanie Etapu 2 (dane informacyjne)
             stage2_passed = stage1_companies[stage1_companies['stage2_passed'] == True]
             if not stage2_passed.empty:
-                print(f"\n  Etap 2 - Spółki które przeszły ({len(stage2_passed)}):")
+                print(f"\n  Etap 2 - Spółki z dobrymi warunkami Stochastic ({len(stage2_passed)}):")
                 for _, row in stage2_passed.iterrows():
                     print(f"    {row['ticker']}: 1M={row['stochastic_1m']:.1f}%, 1W={row['stochastic_1w']:.1f}%")
         

@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Notatki - Analizator Rynku{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">📝 Notatki spółek</h5>
+            </div>
+            <div class="card-body">
+                <!-- Filtry -->
+                <form method="GET" class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="ticker" class="form-label">Ticker:</label>
+                        <input type="text" class="form-control" id="ticker" name="ticker" 
+                               value="{{ ticker_filter }}" placeholder="Filtruj po tickerze">
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">Filtruj</button>
+                        <a href="{{ url_for('notes') }}" class="btn btn-outline-secondary">Wyczyść</a>
+                    </div>
+                </form>
+
+                <!-- Informacja o wynikach -->
+                {% if ticker_filter %}
+                    <div class="alert alert-info">
+                        <strong>Filtrowanie:</strong> Pokazuję spółki z notatkami dla tickera "{{ ticker_filter }}"
+                    </div>
+                {% endif %}
+
+                <!-- Wyniki -->
+                {% if companies %}
+                    <div class="table-responsive">
+                        <table id="notesTable" class="table table-striped">
+                            <thead>
+                                <tr style="font-size: 0.85rem;">
+                                    <th>Ticker</th>
+                                    <th>Nazwa</th>
+                                    <th>Sektor</th>
+                                    <th>Kraj</th>
+                                    <th>QRating</th>
+                                    <th>DivGrStr</th>
+                                    <th>Date Edited</th>
+                                    <th>Yield Net</th>
+                                    <th>YieldNet 5% Price</th>
+                                    <th>Ostatnia notatka</th>
+                                    <th>Data notatki</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody style="font-size: 0.8rem;">
+                                {% for company in companies %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ company.ticker }}</strong>
+                                    </td>
+                                    <td>{{ company.informational_data_parsed.get('company', 'N/A') }}</td>
+                                    <td>{{ company.informational_data_parsed.get('sector', 'N/A') }}</td>
+                                    <td>{{ company.selection_data_parsed.get('country', 'N/A') }}</td>
+                                    <td>
+                                        {% set qrating = company.selection_data_parsed.get('quality_rating', 'N/A') %}
+                                        {% if qrating != 'N/A' and '%' in qrating %}
+                                            {{ (qrating|replace('%', '')|float / 100)|int }}
+                                        {% else %}
+                                            {{ qrating }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ company.selection_data_parsed.get('dividend_growth_streak', 'N/A') }}</td>
+                                    <td>{{ company.informational_data_parsed.get('date_edited', 'N/A') }}</td>
+                                    <td>
+                                        {% if company.yield_netto %}
+                                            {{ "%.2f"|format(company.yield_netto) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.price_for_5_percent_yield %}
+                                            ${{ "%.2f"|format(company.price_for_5_percent_yield) }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.latest_note %}
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-info me-2">{{ company.notes_count }}</span>
+                                                <div>
+                                                    {% if company.latest_note.title %}
+                                                        <strong>{{ company.latest_note.title }}</strong><br>
+                                                    {% endif %}
+                                                    <small class="text-muted">
+                                                        {{ company.latest_note.content[:50] }}{% if company.latest_note.content|length > 50 %}...{% endif %}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">Brak notatek</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.latest_note %}
+                                            <small>{{ company.latest_note.created_at[:10] }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="viewNotes('{{ company.ticker }}')" 
+                                                    title="Zobacz notatki">
+                                                📝
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-success" 
+                                                    onclick="addNote('{{ company.ticker }}')" 
+                                                    title="Dodaj notatkę">
+                                                ➕
+                                            </button>
+                                            <a href="{{ url_for('company_history', ticker=company.ticker) }}" 
+                                               class="btn btn-sm btn-outline-info" 
+                                               title="Historia spółki">
+                                                📊
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Statystyki -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">📊 Statystyki</h6>
+                                    <p class="card-text">
+                                        <strong>Spółek z notatkami:</strong> {{ companies|length }}<br>
+                                        {% if ticker_filter %}
+                                            <strong>Filtrowanie:</strong> {{ ticker_filter }}
+                                        {% else %}
+                                            <strong>Wszystkie spółki z notatkami</strong>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <h4>📝 Brak notatek</h4>
+                        <p>
+                            {% if ticker_filter %}
+                                Nie znaleziono notatek dla tickera "{{ ticker_filter }}"
+                            {% else %}
+                                Brak spółek z notatkami. Dodaj notatki do spółek, aby zobaczyć je tutaj.
+                            {% endif %}
+                        </p>
+                        <a href="{{ url_for('results') }}" class="btn btn-primary">
+                            Przejdź do wyników
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal dla notatek -->
+<div class="modal fade" id="notesModal" tabindex="-1" aria-labelledby="notesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="notesModalLabel">Notatki dla <span id="modalTicker"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="notesModalBody">
+                <!-- Zawartość notatek będzie ładowana dynamicznie -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal dla dodawania/edycji notatki -->
+<div class="modal fade" id="noteEditModal" tabindex="-1" aria-labelledby="noteEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="noteEditModalLabel">Dodaj notatkę dla <span id="editModalTicker"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="noteForm">
+                    <div class="mb-3">
+                        <label for="noteTitle" class="form-label">Tytuł (opcjonalny):</label>
+                        <input type="text" class="form-control" id="noteTitle" name="title" placeholder="Tytuł notatki">
+                    </div>
+                    <div class="mb-3">
+                        <label for="noteContent" class="form-label">Treść notatki:</label>
+                        <textarea class="form-control" id="noteContent" name="content" rows="5" required placeholder="Wpisz treść notatki..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-primary" onclick="saveNote()">Zapisz notatkę</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTicker = '';
+
+function viewNotes(ticker) {
+    currentTicker = ticker;
+    document.getElementById('modalTicker').textContent = ticker;
+    
+    // Pokaż loading
+    document.getElementById('notesModalBody').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Ładowanie notatek...</p></div>';
+    
+    // Pokaż modal
+    const modal = new bootstrap.Modal(document.getElementById('notesModal'));
+    modal.show();
+    
+    // Załaduj notatki
+    fetch(`/api/notes/${ticker}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayNotes(data.notes);
+            } else {
+                document.getElementById('notesModalBody').innerHTML = '<div class="alert alert-warning">Błąd podczas ładowania notatek</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('notesModalBody').innerHTML = '<div class="alert alert-danger">Błąd podczas ładowania notatek</div>';
+        });
+}
+
+function displayNotes(notes) {
+    const modalBody = document.getElementById('notesModalBody');
+    
+    if (notes.length === 0) {
+        modalBody.innerHTML = '<div class="text-center text-muted"><p>Brak notatek dla tej spółki</p></div>';
+        return;
+    }
+    
+    let html = '<div class="notes-list">';
+    notes.forEach(note => {
+        html += `
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        ${note.title ? note.title : `Notatka ${note.note_number}`}
+                    </h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary btn-sm" onclick="editNote('${currentTicker}', ${note.note_number})">
+                            ✏️
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteNote('${currentTicker}', ${note.note_number})">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">${note.content}</p>
+                    <small class="text-muted">
+                        Utworzono: ${note.created_at} | 
+                        Ostatnia edycja: ${note.updated_at}
+                    </small>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    modalBody.innerHTML = html;
+}
+
+function addNote(ticker) {
+    currentTicker = ticker;
+    document.getElementById('editModalTicker').textContent = ticker;
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteContent').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('noteEditModal'));
+    modal.show();
+}
+
+function saveNote() {
+    const title = document.getElementById('noteTitle').value;
+    const content = document.getElementById('noteContent').value;
+    
+    if (!content.trim()) {
+        alert('Treść notatki jest wymagana!');
+        return;
+    }
+    
+    fetch(`/api/notes/${currentTicker}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            content: content
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Zamknij modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('noteEditModal'));
+            modal.hide();
+            
+            // Odśwież stronę
+            location.reload();
+        } else {
+            alert('Błąd podczas zapisywania notatki: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Błąd podczas zapisywania notatki');
+    });
+}
+
+function editNote(ticker, noteNumber) {
+    // Implementacja edycji notatki (można rozszerzyć później)
+    alert('Funkcja edycji notatki będzie dostępna wkrótce');
+}
+
+function deleteNote(ticker, noteNumber) {
+    if (confirm('Czy na pewno chcesz usunąć tę notatkę?')) {
+        fetch(`/api/notes/${ticker}/${noteNumber}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Odśwież notatki
+                viewNotes(ticker);
+            } else {
+                alert('Błąd podczas usuwania notatki: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Błąd podczas usuwania notatki');
+        });
+    }
+}
+</script>
+{% endblock %} 

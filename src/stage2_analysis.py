@@ -71,12 +71,12 @@ def analyze_stage2(stage1_stocks):
         print(f"\nWyniki analizy Etapu 2:")
         print(f"Przeanalizowano {len(results_df)} spółek")
         
-        # Spółki które przeszły Etap 2
+        # Spółki z dobrymi warunkami Stochastic (dane informacyjne)
         stage2_passed = results_df[results_df['stage2_passed'] == True]
-        print(f"Etap 2: {len(stage2_passed)} spółek spełnia warunki")
+        print(f"Etap 2: {len(stage2_passed)} spółek ma dobre warunki Stochastic")
         
         if not stage2_passed.empty:
-            print("\nSpółki które przeszły Etap 2:")
+            print("\nSpółki z dobrymi warunkami Stochastic:")
             for _, row in stage2_passed.iterrows():
                 ticker = row['ticker']
                 stoch_1m = row['stochastic_1m']
@@ -86,10 +86,10 @@ def analyze_stage2(stage1_stocks):
                 
                 print(f"  {ticker}: 1M={stoch_1m:.1f}% {condition_1m}, 1W={stoch_1w:.1f}% {condition_1w}")
         
-        # Spółki które nie przeszły Etap 2
+        # Spółki z gorszymi warunkami Stochastic (dane informacyjne)
         stage2_failed = results_df[results_df['stage2_passed'] == False]
         if not stage2_failed.empty:
-            print(f"\nSpółki które NIE przeszły Etapu 2 ({len(stage2_failed)}):")
+            print(f"\nSpółki z gorszymi warunkami Stochastic ({len(stage2_failed)}):")
             for _, row in stage2_failed.iterrows():
                 ticker = row['ticker']
                 stoch_1m = row['stochastic_1m']

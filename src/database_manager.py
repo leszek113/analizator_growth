@@ -24,6 +24,10 @@ class DatabaseManager:
         self.db_path = db_path
         self.init_database()
     
+    def get_connection(self):
+        """Zwraca połączenie z bazą danych"""
+        return sqlite3.connect(self.db_path)
+    
     def init_database(self):
         """
         Inicjalizuje bazę danych z wszystkimi tabelami
@@ -96,6 +100,22 @@ class DatabaseManager:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE(ticker, note_number)
+                    )
+                """)
+                
+                # Tabela automatycznych uruchomień
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS auto_schedule_runs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        run_id TEXT UNIQUE NOT NULL,
+                        scheduled_time TIMESTAMP,
+                        started_at TIMESTAMP,
+                        completed_at TIMESTAMP,
+                        status TEXT NOT NULL, -- success, error, timeout
+                        error_details TEXT, -- JSON z błędami
+                        companies_count INTEGER,
+                        execution_time_seconds INTEGER,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
                 
@@ -671,6 +691,7 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 query = """
                     SELECT sc.run_id, ar.run_date, sc.ticker,
+                           sc.yield, sc.yield_netto, sc.current_price, sc.price_for_5_percent_yield,
                            sc.stochastic_1m, sc.stochastic_1w, sc.stage2_passed,
                            ar.selection_rules_version, ar.informational_columns_version,
                            sc.selection_data, sc.informational_data

@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Historia {{ ticker }} - Analizator Rynku{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">📊 Historia spółki <strong>{{ ticker }}</strong></h5>
+                <div>
+                    <a href="{{ url_for('notes') }}" class="btn btn-outline-primary btn-sm">
+                        ← Powrót do notatek
+                    </a>
+                    <a href="{{ url_for('results') }}" class="btn btn-outline-secondary btn-sm">
+                        ← Powrót do wyników
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if history is defined and not history.empty %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr style="font-size: 0.85rem;">
+                                    <th>Data uruchomienia</th>
+                                    <th>Wersja selekcji</th>
+                                    <th>Wersja info</th>
+                                    <th>Yield</th>
+                                    <th>Yield Netto</th>
+                                    <th>Cena aktualna</th>
+                                    <th>Cena dla 5% yield</th>
+                                    <th>Stochastic 1M</th>
+                                    <th>Stochastic 1W</th>
+                                    <th>Stochastic OK</th>
+                                    <th>Notatki</th>
+                                </tr>
+                            </thead>
+                            <tbody style="font-size: 0.8rem;">
+                                {% for _, row in history.iterrows() %}
+                                <tr>
+                                    <td>
+                                        <small>{{ row.run_date[:10] if row.run_date else 'N/A' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ row.selection_rules_version or 'N/A' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ row.informational_columns_version or 'N/A' }}</span>
+                                    </td>
+                                    <td>
+                                        {% if row.yield %}
+                                            {{ "%.2f"|format(row.yield) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.yield_netto %}
+                                            {{ "%.2f"|format(row.yield_netto) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.current_price %}
+                                            ${{ "%.2f"|format(row.current_price) }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.price_for_5_percent_yield %}
+                                            ${{ "%.2f"|format(row.price_for_5_percent_yield) }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.stochastic_1m %}
+                                            <span class="badge {% if row.stochastic_1m < 30 %}bg-success{% else %}bg-warning{% endif %}">
+                                                {{ "%.1f"|format(row.stochastic_1m) }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.stochastic_1w %}
+                                            <span class="badge {% if row.stochastic_1w < 30 %}bg-success{% else %}bg-warning{% endif %}">
+                                                {{ "%.1f"|format(row.stochastic_1w) }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.stage2_passed %}
+                                            <span class="badge bg-success">✅</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">❌</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                onclick="viewNotes('{{ ticker }}')" 
+                                                title="Zobacz notatki">
+                                            📝
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Statystyki -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">📈 Statystyki historii</h6>
+                                    <p class="card-text">
+                                        <strong>Liczba wpisów:</strong> {{ history|length }}<br>
+                                        <strong>Ostatni wpis:</strong> {{ history.iloc[0].run_date[:10] if not history.empty else 'Brak' }}<br>
+                                        <strong>Pierwszy wpis:</strong> {{ history.iloc[-1].run_date[:10] if not history.empty else 'Brak' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">📊 Analiza</h6>
+                                    <p class="card-text">
+                                        {% set passed_count = history[history.stage2_passed == True]|length %}
+                                        {% set total_count = history|length %}
+                                        <strong>Dobre warunki Stochastic:</strong> {{ passed_count }}/{{ total_count }} ({{ "%.1f"|format(passed_count/total_count*100) if total_count > 0 else 0 }}%)<br>
+                                        <strong>Średni yield:</strong> 
+                                        {% set avg_yield = history.yield.mean() %}
+                                        {% if avg_yield and avg_yield != 'nan' and avg_yield != 'None' %}
+                                            {{ "%.2f"|format(avg_yield) }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <h4>📊 Brak historii</h4>
+                        <p>Nie znaleziono historii dla spółki <strong>{{ ticker }}</strong></p>
+                        <p>Spółka może nie być w najnowszych wynikach analizy.</p>
+                        <a href="{{ url_for('results') }}" class="btn btn-primary">
+                            Przejdź do wyników
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal dla notatek -->
+<div class="modal fade" id="notesModal" tabindex="-1" aria-labelledby="notesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="notesModalLabel">Notatki dla {{ ticker }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="notesModalBody">
+                <!-- Zawartość notatek będzie ładowana dynamicznie -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewNotes(ticker) {
+    // Pokaż loading
+    document.getElementById('notesModalBody').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Ładowanie notatek...</p></div>';
+    
+    // Pokaż modal
+    const modal = new bootstrap.Modal(document.getElementById('notesModal'));
+    modal.show();
+    
+    // Załaduj notatki
+    fetch(`/api/notes/${ticker}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayNotes(data.notes);
+            } else {
+                document.getElementById('notesModalBody').innerHTML = '<div class="alert alert-warning">Błąd podczas ładowania notatek</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('notesModalBody').innerHTML = '<div class="alert alert-danger">Błąd podczas ładowania notatek</div>';
+        });
+}
+
+function displayNotes(notes) {
+    const modalBody = document.getElementById('notesModalBody');
+    
+    if (notes.length === 0) {
+        modalBody.innerHTML = '<div class="text-center text-muted"><p>Brak notatek dla tej spółki</p></div>';
+        return;
+    }
+    
+    let html = '<div class="notes-list">';
+    notes.forEach(note => {
+        html += `
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        ${note.title ? note.title : `Notatka ${note.note_number}`}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">${note.content}</p>
+                    <small class="text-muted">
+                        Utworzono: ${note.created_at} | 
+                        Ostatnia edycja: ${note.updated_at}
+                    </small>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    modalBody.innerHTML = html;
+}
+</script>
+{% endblock %} 

@@ -264,6 +264,73 @@
     </div>
 </div>
 
+<!-- Sekcja Automatycznego Uruchamiania -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clock"></i> Automatyczne Uruchamianie
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="auto-schedule-status">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Ładowanie...</span>
+                                </div>
+                                <span>Ładowanie statusu...</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="auto-schedule-enabled">
+                            <label class="form-check-label" for="auto-schedule-enabled">
+                                Włącz automatyczne uruchamianie analizy
+                            </label>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="auto-schedule-time" class="form-label">Godzina uruchomienia</label>
+                                <input type="time" class="form-control" id="auto-schedule-time" value="09:00">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="auto-schedule-timezone" class="form-label">Strefa czasowa</label>
+                                <select class="form-select" id="auto-schedule-timezone">
+                                    <option value="Europe/Warsaw">Europe/Warsaw</option>
+                                    <option value="UTC">UTC</option>
+                                    <option value="America/New_York">America/New_York</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-success me-2" id="save-auto-schedule">
+                                <i class="fas fa-save"></i> Zapisz Konfigurację
+                            </button>
+                            <button type="button" class="btn btn-warning" id="run-now">
+                                <i class="fas fa-play"></i> Uruchom Teraz
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6>Historia Uruchomień</h6>
+                        <div id="auto-schedule-history">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Ładowanie...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Funkcje JavaScript dla interakcji
 function showAlert(message, type = 'success') {
@@ -283,6 +350,169 @@ function showAlert(message, type = 'success') {
         }
     }, 5000);
 }
+
+// ===== FUNKCJE DLA AUTOMATYCZNEGO URZUCAMIANIA =====
+
+// Ładowanie statusu automatycznego uruchamiania
+function loadAutoScheduleStatus() {
+    fetch('/api/auto-schedule/status')
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById('auto-schedule-status');
+            const enabledCheckbox = document.getElementById('auto-schedule-enabled');
+            const timeInput = document.getElementById('auto-schedule-time');
+            const timezoneSelect = document.getElementById('auto-schedule-timezone');
+            
+            // Aktualizuj checkbox
+            enabledCheckbox.checked = data.enabled;
+            
+            // Aktualizuj czas i strefę czasową
+            if (data.time) {
+                timeInput.value = data.time;
+            }
+            if (data.timezone) {
+                timezoneSelect.value = data.timezone;
+            }
+            
+            // Aktualizuj status
+            const statusHtml = `
+                <div class="mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge ${data.scheduler_running ? 'bg-success' : 'bg-secondary'} me-2">
+                            ${data.scheduler_running ? 'Aktywny' : 'Nieaktywny'}
+                        </span>
+                        <span class="text-muted">Scheduler</span>
+                    </div>
+                    ${data.next_run ? `
+                        <div class="text-muted">
+                            <small>Następne uruchomienie: ${new Date(data.next_run).toLocaleString('pl-PL')}</small>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            statusDiv.innerHTML = statusHtml;
+        })
+        .catch(error => {
+            console.error('Błąd podczas ładowania statusu:', error);
+            document.getElementById('auto-schedule-status').innerHTML = 
+                '<div class="alert alert-danger">Błąd podczas ładowania statusu</div>';
+        });
+}
+
+// Ładowanie historii automatycznych uruchomień
+function loadAutoScheduleHistory() {
+    fetch('/api/auto-schedule/history?limit=5')
+        .then(response => response.json())
+        .then(data => {
+            const historyDiv = document.getElementById('auto-schedule-history');
+            
+            if (data.history && data.history.length > 0) {
+                const historyHtml = data.history.map(run => `
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <small class="text-muted">${new Date(run.started_at).toLocaleString('pl-PL')}</small>
+                                <br>
+                                <span class="badge ${run.status === 'success' ? 'bg-success' : 'bg-danger'}">
+                                    ${run.status === 'success' ? 'Sukces' : 'Błąd'}
+                                </span>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">${run.execution_time_seconds}s</small>
+                                <br>
+                                <small class="text-muted">${run.companies_count || 0} spółek</small>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                historyDiv.innerHTML = historyHtml;
+            } else {
+                historyDiv.innerHTML = '<p class="text-muted">Brak historii uruchomień</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Błąd podczas ładowania historii:', error);
+            document.getElementById('auto-schedule-history').innerHTML = 
+                '<div class="alert alert-danger">Błąd podczas ładowania historii</div>';
+        });
+}
+
+// Zapisywanie konfiguracji automatycznego uruchamiania
+function saveAutoScheduleConfig() {
+    const enabled = document.getElementById('auto-schedule-enabled').checked;
+    const time = document.getElementById('auto-schedule-time').value;
+    const timezone = document.getElementById('auto-schedule-timezone').value;
+    
+    fetch('/api/auto-schedule/configure', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'secret_key_123'
+        },
+        body: JSON.stringify({
+            enabled: enabled,
+            time: time,
+            timezone: timezone
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Konfiguracja zapisana pomyślnie', 'success');
+            loadAutoScheduleStatus();
+        } else {
+            showAlert('Błąd podczas zapisywania konfiguracji: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Błąd podczas zapisywania konfiguracji:', error);
+        showAlert('Błąd podczas zapisywania konfiguracji', 'danger');
+    });
+}
+
+// Uruchamianie analizy natychmiast
+function runAnalysisNow() {
+    const button = document.getElementById('run-now');
+    const originalText = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uruchamianie...';
+    
+    fetch('/api/auto-schedule/run-now', {
+        method: 'POST',
+        headers: {
+            'X-API-Key': 'secret_key_123'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Analiza uruchomiona pomyślnie', 'success');
+            // Odśwież historię po chwili
+            setTimeout(loadAutoScheduleHistory, 2000);
+        } else {
+            showAlert('Błąd podczas uruchamiania analizy: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Błąd podczas uruchamiania analizy:', error);
+        showAlert('Błąd podczas uruchamiania analizy', 'danger');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
+}
+
+// Inicjalizacja po załadowaniu strony
+document.addEventListener('DOMContentLoaded', function() {
+    loadAutoScheduleStatus();
+    loadAutoScheduleHistory();
+    
+    // Event listeners
+    document.getElementById('save-auto-schedule').addEventListener('click', saveAutoScheduleConfig);
+    document.getElementById('run-now').addEventListener('click', runAnalysisNow);
+});
 
 function editSelectionRules() {
     window.location.href = '/config/edit_selection_rules';
