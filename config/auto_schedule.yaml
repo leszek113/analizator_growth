@@ -5,6 +5,11 @@ auto_schedule:
   retry_delay_minutes: 30
   time: '10:00'
   timezone: Europe/Warsaw
+
+flag_snapshot:
+  enabled: true
+  time: '23:30'
+  timezone: Europe/Warsaw
 last_run:
   error_message: ''
   success: false

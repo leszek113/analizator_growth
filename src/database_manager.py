@@ -119,6 +119,33 @@ class DatabaseManager:
                     )
                 """)
                 
+                # Tabela flag spółek
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS company_flags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ticker TEXT NOT NULL UNIQUE,
+                        flag_color TEXT NOT NULL CHECK (flag_color IN ('red', 'green', 'yellow', 'blue', 'none')),
+                        flag_notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Tabela historii flag
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS flag_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ticker TEXT NOT NULL,
+                        flag_color TEXT NOT NULL,
+                        previous_flag_color TEXT,
+                        flag_notes TEXT,
+                        changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        change_reason TEXT DEFAULT 'manual',
+                        run_id INTEGER,
+                        FOREIGN KEY (run_id) REFERENCES analysis_runs(id)
+                    )
+                """)
+                
                 # Dodaj kolumny jeśli nie istnieją (migracja)
                 try:
                     cursor.execute("ALTER TABLE stage1_companies ADD COLUMN current_price REAL")
@@ -135,6 +162,9 @@ class DatabaseManager:
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_stage1_ticker ON stage1_companies(ticker)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_ticker ON company_notes(ticker)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_ticker_number ON company_notes(ticker, note_number)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_flags_ticker ON company_flags(ticker)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_flag_history_ticker ON flag_history(ticker)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_flag_history_date ON flag_history(changed_at)")
                 
                 conn.commit()
                 logger.info("Baza danych zainicjalizowana pomyślnie")
@@ -486,9 +516,12 @@ class DatabaseManager:
                            s.yield, s.yield_netto, s.current_price,
                            s.price_for_5_percent_yield,
                            s.stochastic_1m, s.stochastic_1w, s.stage2_passed,
-                           a.run_date
+                           a.run_date,
+                           COALESCE(f.flag_color, 'none') as flag_color,
+                           f.flag_notes
                     FROM stage1_companies s
                     JOIN analysis_runs a ON s.run_id = a.id
+                    LEFT JOIN company_flags f ON s.ticker = f.ticker
                     WHERE DATE(a.run_date) = ?
                     ORDER BY s.ticker
                 """
@@ -619,13 +652,16 @@ class DatabaseManager:
             # Spółki Etapu 1 z danymi selekcji i informacjami o Etapie 2
             with sqlite3.connect(self.db_path) as conn:
                 query = """
-                    SELECT ticker, selection_data, informational_data, 
-                           yield, yield_netto, current_price, 
-                           price_for_5_percent_yield,
-                           stochastic_1m, stochastic_1w, stage2_passed
-                    FROM stage1_companies 
-                    WHERE run_id = ?
-                    ORDER BY ticker
+                    SELECT s.ticker, s.selection_data, s.informational_data, 
+                           s.yield, s.yield_netto, s.current_price, 
+                           s.price_for_5_percent_yield,
+                           s.stochastic_1m, s.stochastic_1w, s.stage2_passed,
+                           COALESCE(f.flag_color, 'none') as flag_color,
+                           f.flag_notes
+                    FROM stage1_companies s
+                    LEFT JOIN company_flags f ON s.ticker = f.ticker
+                    WHERE s.run_id = ?
+                    ORDER BY s.ticker
                 """
                 df = pd.read_sql(query, conn, params=(run_id,))
                 
@@ -650,6 +686,93 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Błąd podczas pobierania najnowszych wyników: {e}")
             return pd.DataFrame()
+    
+    def get_all_results(self) -> pd.DataFrame:
+        """
+        Pobiera wszystkie wyniki analizy z wszystkich uruchomień
+        
+        Returns:
+            DataFrame z wszystkimi wynikami
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                query = """
+                    SELECT s.run_id, s.ticker, s.selection_data, s.informational_data, 
+                           s.yield, s.yield_netto, s.current_price, 
+                           s.price_for_5_percent_yield,
+                           s.stochastic_1m, s.stochastic_1w, s.stage2_passed,
+                           ar.run_date,
+                           COALESCE(f.flag_color, 'none') as flag_color,
+                           f.flag_notes
+                    FROM stage1_companies s
+                    LEFT JOIN analysis_runs ar ON s.run_id = ar.id
+                    LEFT JOIN company_flags f ON s.ticker = f.ticker
+                    ORDER BY ar.run_date DESC, s.ticker
+                """
+                df = pd.read_sql(query, conn)
+                
+                if df.empty:
+                    logger.warning("Brak danych w bazie")
+                    return df
+                
+                # Parsuj JSON dane
+                df['selection_data_parsed'] = df['selection_data'].apply(
+                    lambda x: json.loads(x) if x else {}
+                )
+                df['informational_data_parsed'] = df['informational_data'].apply(
+                    lambda x: json.loads(x) if x else {}
+                )
+                
+                # Dodaj liczbę notatek dla każdej spółki
+                df['notes_count'] = df['ticker'].apply(self.get_company_notes_count)
+                
+                logger.info(f"Pobrano {len(df)} spółek ze wszystkich uruchomień")
+                return df
+                
+        except Exception as e:
+            logger.error(f"Błąd podczas pobierania wszystkich wyników: {e}")
+            return pd.DataFrame()
+    
+    def get_flag_snapshot_history(self, limit: int = 10) -> list:
+        """
+        Pobiera historię zapisu flag tickerów
+        
+        Args:
+            limit: Maksymalna liczba rekordów
+            
+        Returns:
+            Lista słowników z historią
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                query = """
+                    SELECT changed_at, ticker, flag_color, flag_notes, change_reason
+                    FROM flag_history 
+                    ORDER BY changed_at DESC, ticker
+                    LIMIT ?
+                """
+                df = pd.read_sql(query, conn, params=(limit,))
+                
+                if df.empty:
+                    return []
+                
+                # Konwertuj DataFrame na listę słowników
+                history = []
+                for _, row in df.iterrows():
+                    history.append({
+                        'snapshot_date': row['changed_at'],
+                        'ticker': row['ticker'],
+                        'flag_color': row['flag_color'],
+                        'flag_notes': row['flag_notes'],
+                        'change_reason': row['change_reason']
+                    })
+                
+                logger.info(f"Pobrano {len(history)} rekordów historii flag")
+                return history
+                
+        except Exception as e:
+            logger.error(f"Błąd podczas pobierania historii flag: {e}")
+            return []
     
     def get_analysis_history(self, limit: int = 10) -> pd.DataFrame:
         """
@@ -1079,9 +1202,12 @@ class DatabaseManager:
                            s.yield, s.yield_netto, s.current_price, 
                            s.price_for_5_percent_yield,
                            s.stochastic_1m, s.stochastic_1w, s.stage2_passed,
-                           a.run_date
+                           a.run_date,
+                           COALESCE(f.flag_color, 'none') as flag_color,
+                           f.flag_notes
                     FROM stage1_companies s
                     JOIN analysis_runs a ON s.run_id = a.id
+                    LEFT JOIN company_flags f ON s.ticker = f.ticker
                     WHERE s.ticker = ?
                     ORDER BY a.run_date DESC
                 """
@@ -1129,4 +1255,176 @@ class DatabaseManager:
                 return df
         except Exception as e:
             logger.error(f"Błąd podczas pobierania najnowszego uruchomienia: {e}")
-            return pd.DataFrame() 
+            return pd.DataFrame()
+    
+    # ===== METODY DLA FLAG =====
+    
+    def get_company_flag(self, ticker: str) -> dict:
+        """
+        Pobiera flagę dla spółki
+        
+        Args:
+            ticker: Symbol spółki
+            
+        Returns:
+            Słownik z informacjami o fladze lub None
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT flag_color, flag_notes, created_at, updated_at
+                    FROM company_flags
+                    WHERE ticker = ?
+                """, (ticker,))
+                
+                result = cursor.fetchone()
+                if result:
+                    return {
+                        'flag_color': result[0],
+                        'flag_notes': result[1],
+                        'created_at': result[2],
+                        'updated_at': result[3]
+                    }
+                return None
+        except Exception as e:
+            logger.error(f"Błąd podczas pobierania flagi dla {ticker}: {e}")
+            return None
+    
+    def set_company_flag(self, ticker: str, flag_color: str, flag_notes: str = None) -> bool:
+        """
+        Ustawia flagę dla spółki
+        
+        Args:
+            ticker: Symbol spółki
+            flag_color: Kolor flagi (red, green, yellow, blue, none)
+            flag_notes: Notatki do flagi (max 40 znaków)
+            
+        Returns:
+            True jeśli sukces, False w przeciwnym razie
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Sprawdź czy flaga już istnieje
+                cursor.execute("SELECT flag_color FROM company_flags WHERE ticker = ?", (ticker,))
+                existing = cursor.fetchone()
+                previous_flag = existing[0] if existing else None
+                
+                if flag_color == 'none':
+                    # Usuń flagę
+                    if existing:
+                        cursor.execute("DELETE FROM company_flags WHERE ticker = ?", (ticker,))
+                else:
+                    # Ustaw/aktualizuj flagę
+                    if existing:
+                        cursor.execute("""
+                            UPDATE company_flags 
+                            SET flag_color = ?, flag_notes = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE ticker = ?
+                        """, (flag_color, flag_notes, ticker))
+                    else:
+                        cursor.execute("""
+                            INSERT INTO company_flags (ticker, flag_color, flag_notes)
+                            VALUES (?, ?, ?)
+                        """, (ticker, flag_color, flag_notes))
+                
+                # Zapisz do historii jeśli flaga się zmieniła
+                if previous_flag != flag_color:
+                    cursor.execute("""
+                        INSERT INTO flag_history (ticker, flag_color, previous_flag_color, flag_notes, change_reason)
+                        VALUES (?, ?, ?, ?, 'manual')
+                    """, (ticker, flag_color, previous_flag, flag_notes))
+                
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Błąd podczas ustawiania flagi dla {ticker}: {e}")
+            return False
+    
+    def get_flag_history(self, ticker: str, limit: int = 10) -> pd.DataFrame:
+        """
+        Pobiera historię flag dla spółki
+        
+        Args:
+            ticker: Symbol spółki
+            limit: Maksymalna liczba wpisów
+            
+        Returns:
+            DataFrame z historią flag
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                query = """
+                    SELECT flag_color, previous_flag_color, flag_notes, 
+                           changed_at, change_reason
+                    FROM flag_history
+                    WHERE ticker = ?
+                    ORDER BY changed_at DESC
+                    LIMIT ?
+                """
+                df = pd.read_sql_query(query, conn, params=(ticker, limit))
+                return df
+        except Exception as e:
+            logger.error(f"Błąd podczas pobierania historii flag dla {ticker}: {e}")
+            return pd.DataFrame()
+    
+    def get_all_flags(self) -> pd.DataFrame:
+        """
+        Pobiera wszystkie aktualne flagi
+        
+        Returns:
+            DataFrame ze wszystkimi flagami
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                query = """
+                    SELECT ticker, flag_color, flag_notes, created_at, updated_at
+                    FROM company_flags
+                    ORDER BY ticker
+                """
+                df = pd.read_sql_query(query, conn)
+                return df
+        except Exception as e:
+            logger.error(f"Błąd podczas pobierania wszystkich flag: {e}")
+            return pd.DataFrame()
+    
+    def get_flags_report(self) -> dict:
+        """
+        Generuje raport flag
+        
+        Returns:
+            Słownik z raportem flag
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Liczba flag każdego koloru
+                cursor.execute("""
+                    SELECT flag_color, COUNT(*) as count
+                    FROM company_flags
+                    GROUP BY flag_color
+                    ORDER BY flag_color
+                """)
+                flag_counts = dict(cursor.fetchall())
+                
+                # Spółki z najdłużej utrzymującymi się flagami
+                cursor.execute("""
+                    SELECT ticker, flag_color, flag_notes, 
+                           JULIANDAY('now') - JULIANDAY(created_at) as days
+                    FROM company_flags
+                    ORDER BY days DESC
+                    LIMIT 5
+                """)
+                longest_flags = cursor.fetchall()
+                
+                return {
+                    'flag_counts': flag_counts,
+                    'longest_flags': longest_flags,
+                    'total_flagged': sum(flag_counts.values())
+                }
+        except Exception as e:
+            logger.error(f"Błąd podczas generowania raportu flag: {e}")
+            return {} 

@@ -3,28 +3,77 @@
 {% block title %}Wyniki selekcji - Analizator Rynku{% endblock %}
 
 {% block content %}
+<style>
+    .flag-container {
+        text-align: center;
+        padding: 5px;
+        border-radius: 5px;
+        transition: background-color 0.2s;
+    }
+    
+    .flag-container:hover {
+        background-color: rgba(0,0,0,0.1);
+    }
+    
+    .flag-emoji {
+        font-size: 1.2rem;
+        cursor: pointer;
+    }
+    
+    .flag-emoji:hover {
+        transform: scale(1.2);
+        transition: transform 0.2s;
+    }
+    
+    .flag-select {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+    }
+    
+    .flag-select option {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+    }
+</style>
+
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">🎯 Wyniki selekcji</h5>
+                <h5 class="card-title mb-0">
+                    🎯 Wyniki selekcji
+                    {% if view_type == 'latest' and view_date %}
+                        - {{ view_date }}
+                    {% elif view_type == 'date' %}
+                        - {{ view_date }}
+                    {% elif view_type == 'ticker' %}
+                        - {{ view_date }}
+                    {% elif view_type == 'all' %}
+                        - Wszystko
+                    {% endif %}
+                </h5>
             </div>
             <div class="card-body">
                 <!-- Filtry -->
                 <form method="GET" class="row g-3 mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="date" class="form-label">Data:</label>
                         <input type="date" class="form-control" id="date" name="date" 
                                value="{{ date_filter }}" placeholder="Wszystkie daty">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-2">
                         <label for="ticker" class="form-label">Ticker:</label>
                         <input type="text" class="form-control" id="ticker" name="ticker" 
-                               value="{{ ticker_filter }}" placeholder="Filtruj po tickerze">
+                               value="{{ ticker_filter }}" placeholder="Ticker" maxlength="10" style="width: 100px;">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="search" class="form-label">Szukaj:</label>
+                        <input type="text" class="form-control" id="search" placeholder="Szukaj w tabeli..." style="width: 200px;">
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary me-2">Filtruj</button>
-                        <a href="{{ url_for('results') }}" class="btn btn-outline-secondary">Wyczyść</a>
+                        <a href="{{ url_for('results') }}" class="btn btn-outline-secondary me-2">Wyczyść</a>
+                        <a href="{{ url_for('results', show_all='true') }}" class="btn btn-outline-info">Wszystko</a>
                     </div>
                 </form>
 
@@ -34,6 +83,7 @@
                         <table id="resultsTable" class="table table-striped">
                             <thead>
                                 <tr style="font-size: 0.85rem;">
+                                    <th>Flaga</th>
                                     <th>Ticker</th>
                                     <th>Nazwa</th>
                                     <th>Sektor</th>
@@ -52,6 +102,21 @@
                             <tbody style="font-size: 0.8rem;">
                                 {% for company in results %}
                                 <tr>
+                                    <td>
+                                        <div class="flag-container">
+                                            <span class="flag-display" 
+                                                  onclick="showFlagModal('{{ company.ticker }}', '{{ company.flag_color }}', '{{ company.flag_notes }}')"
+                                                  {% if company.flag_notes %}data-bs-toggle="tooltip" data-bs-placement="top" title="{{ company.flag_notes }}"{% endif %}
+                                                  style="cursor: pointer; font-size: 1.5rem;">
+                                                {% if company.flag_color == 'none' %}⚪
+                                                {% elif company.flag_color == 'red' %}🔴
+                                                {% elif company.flag_color == 'green' %}🟢
+                                                {% elif company.flag_color == 'yellow' %}🟡
+                                                {% elif company.flag_color == 'blue' %}🔵
+                                                {% else %}⚪{% endif %}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td>
                                         <strong>{{ company.ticker }}</strong>
                                     </td>
@@ -259,35 +324,44 @@
 <script>
 // Inicjalizacja DataTables z sortowaniem
 $(document).ready(function() {
-    $('#resultsTable').DataTable({
+    var table = $('#resultsTable').DataTable({
         language: {
             url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pl.json'
         },
         pageLength: 25,
-        order: [[7, 'desc']], // Sortuj domyślnie po Yield Net (kolumna 7) malejąco
+        order: [[8, 'desc']], // Sortuj domyślnie po Yield Net (kolumna 8) malejąco
         columnDefs: [
             {
-                targets: [0, 1, 2, 3, 4, 5, 6], // Kolumny tekstowe
+                targets: [0, 1, 2, 3, 4, 5, 6, 7], // Kolumny tekstowe
                 type: 'string'
             },
             {
-                targets: [7, 8, 9, 10], // Kolumny numeryczne (Yield Net, Cena 5%, Stochastic)
+                targets: [8, 9, 10, 11], // Kolumny numeryczne (Yield Net, Cena 5%, Stochastic)
                 type: 'num',
                 render: function(data, type, row) {
                     if (type === 'sort') {
-                        // Dla sortowania - wyciągnij tylko liczbę
+                        // Dla sortowania - wyciągnij tylko liczbę, obsłuż N/A
+                        if (data === 'N/A' || data === '') {
+                            return -1; // Umieść N/A na końcu
+                        }
                         return parseFloat(data.replace(/[^\d.-]/g, '')) || 0;
                     }
                     return data; // Dla wyświetlania - oryginalny tekst
                 }
             },
             {
-                targets: [11, 12], // Kolumny Notatki i Akcje - nie sortuj
+                targets: [12, 13], // Kolumny Notatki i Akcje - nie sortuj
                 orderable: false
             }
         ],
         responsive: true,
-        dom: 'frtip'
+        dom: 'rtip', // Usuń domyślne pole wyszukiwania (f)
+        searching: true
+    });
+    
+    // Podłącz pole wyszukiwania do DataTables
+    $('#search').on('keyup', function() {
+        table.search(this.value).draw();
     });
 });
 
@@ -606,6 +680,167 @@ function exportToCSV() {
                     alertDiv.remove();
                 }
             }, 5000);
+        }
+
+        // ===== FUNKCJE DLA FLAG =====
+        
+        function changeFlag(ticker, newFlag) {
+            const flagNames = {
+                'none': 'Brak flagi',
+                'red': 'Czerwona',
+                'green': 'Zielona', 
+                'yellow': 'Żółta',
+                'blue': 'Niebieska'
+            };
+            
+            // Pokaż modal z notatką jeśli flaga nie jest 'none'
+            if (newFlag !== 'none') {
+                const notes = prompt(`Dodaj notatkę do flagi ${flagNames[newFlag]} (max 40 znaków):`);
+                if (notes === null) {
+                    // Anulowano - przywróć poprzednią wartość
+                    const select = event.target;
+                    select.value = select.getAttribute('data-previous-value') || 'none';
+                    return;
+                }
+                
+                setFlag(ticker, newFlag, notes);
+            } else {
+                setFlag(ticker, newFlag, '');
+            }
+            
+            // Zapisz aktualną wartość jako poprzednią
+            event.target.setAttribute('data-previous-value', newFlag);
+        }
+        
+        function setFlag(ticker, flagColor, flagNotes) {
+            fetch(`/api/flags/${ticker}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    flag_color: flagColor, 
+                    flag_notes: flagNotes 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Flaga została ustawiona', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Błąd podczas ustawiania flagi', 'danger');
+            });
+        }
+        
+        // Inicjalizacja tooltipów
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+        
+        // Funkcja do pokazywania modala flagi
+        function showFlagModal(ticker, currentFlag, currentNotes) {
+            const flagNames = {
+                'none': 'Brak flagi',
+                'red': 'Czerwona',
+                'green': 'Zielona', 
+                'yellow': 'Żółta',
+                'blue': 'Niebieska'
+            };
+            
+            const flagEmojis = {
+                'none': '⚪',
+                'red': '🔴',
+                'green': '🟢',
+                'yellow': '🟡',
+                'blue': '🔵'
+            };
+            
+            let modalHtml = `
+                <div class="modal fade" id="flagModal" tabindex="-1">
+                    <div class="modal-dialog modal-sm">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Flaga dla ${ticker}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <div class="mb-3">
+                                    <label class="form-label">Wybierz kolor flagi:</label>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button class="btn btn-outline-secondary flag-btn" data-flag="none" style="font-size: 1.5rem; width: 50px; height: 50px;">⚪</button>
+                                        <button class="btn btn-outline-secondary flag-btn" data-flag="red" style="font-size: 1.5rem; width: 50px; height: 50px;">🔴</button>
+                                        <button class="btn btn-outline-secondary flag-btn" data-flag="green" style="font-size: 1.5rem; width: 50px; height: 50px;">🟢</button>
+                                        <button class="btn btn-outline-secondary flag-btn" data-flag="yellow" style="font-size: 1.5rem; width: 50px; height: 50px;">🟡</button>
+                                        <button class="btn btn-outline-secondary flag-btn" data-flag="blue" style="font-size: 1.5rem; width: 50px; height: 50px;">🔵</button>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="flagNotes" class="form-label">Notatka (max 40 znaków):</label>
+                                    <input type="text" class="form-control" id="flagNotes" maxlength="40" value="${currentNotes || ''}" placeholder="Opcjonalna notatka">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                                <button type="button" class="btn btn-primary" onclick="saveFlag('${ticker}')">Zapisz</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Usuń istniejący modal jeśli istnieje
+            const existingModal = document.getElementById('flagModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Dodaj nowy modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Pokaż modal
+            const modal = new bootstrap.Modal(document.getElementById('flagModal'));
+            modal.show();
+            
+            // Zaznacz aktualną flagę
+            const currentBtn = document.querySelector(`[data-flag="${currentFlag}"]`);
+            if (currentBtn) {
+                currentBtn.classList.remove('btn-outline-secondary');
+                currentBtn.classList.add('btn-primary');
+            }
+            
+            // Obsługa kliknięć na flagi
+            document.querySelectorAll('.flag-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Usuń zaznaczenie ze wszystkich
+                    document.querySelectorAll('.flag-btn').forEach(b => {
+                        b.classList.remove('btn-primary');
+                        b.classList.add('btn-outline-secondary');
+                    });
+                    // Zaznacz klikniętą
+                    this.classList.remove('btn-outline-secondary');
+                    this.classList.add('btn-primary');
+                });
+            });
+        }
+        
+        // Funkcja do zapisywania flagi
+        function saveFlag(ticker) {
+            const selectedFlag = document.querySelector('.flag-btn.btn-primary').dataset.flag;
+            const notes = document.getElementById('flagNotes').value;
+            
+            setFlag(ticker, selectedFlag, notes);
+            
+            // Zamknij modal
+            bootstrap.Modal.getInstance(document.getElementById('flagModal')).hide();
         }
     </script>
 {% endblock %} 

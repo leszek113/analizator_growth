@@ -15,6 +15,7 @@ Automatyczny system analizy i selekcji spółek dywidendowych z integracją Goog
 - **Wyniki**: Tabela z sortowaniem, filtrowaniem i eksportem CSV
 - **Konfiguracja**: Edycja reguł selekcji przez UI
 - **Notatki**: System notatek dla każdej spółki
+- **Flagi**: System kolorowych flag z notatkami dla spółek
 - **Dark Mode**: Nowoczesny interfejs z trybem ciemnym
 
 ### 🔧 Konfiguracja
@@ -77,7 +78,7 @@ python app.py
 Aplikacja będzie dostępna pod adresem: `http://localhost:5001`
 
 ### Ubuntu/Docker (Środowisko testowe)
-Szczegółowa instrukcja dla środowiska Docker znajduje się w pliku: [docs/docker-installation.md](docs/docker-installation.md)
+Szczegółowa instrukcja dla środowiska Docker znajduje się w pliku: [e ebdocs/docker-installation.md](docs/docker-installation.md)
 
 **Szybki start:**
 ```bash
@@ -109,14 +110,33 @@ docker run -d --name analizator-rynku-v1 -p 5001:5001 leszek113/analizator-rynku
 - Dodawaj, edytuj, usuwaj notatki
 - Historia notatek dla każdej spółki
 
-### 5. Automatyczne uruchamianie
+### 5. Flagi spółek
+- Kliknij na flagę przy spółce (⚪🔴🟢🟡🔵)
+- Wybierz kolor flagi i dodaj notatkę (max 40 znaków)
+- Tooltip pokazuje notatkę po najechaniu na flagę
+- Historia flag zapisywana automatycznie raz dziennie
+
+### 6. Przeglądanie wyników
+- **Domyślnie**: pokazuje najnowszą selekcję z datą w nagłówku
+- **Filtrowanie po dacie**: pokazuje selekcję z tej daty
+- **Przycisk "Wszystko"**: pokazuje wszystkie selekcje ze wszystkich dat
+- **Sortowanie**: domyślnie po "Yield Netto" malejąco
+
+### 7. Automatyczne uruchamianie
 - Przejdź do `/config`
-- W sekcji "Automatyczne Uruchamianie":
+- W sekcji "Automatyczne Uruchamianie Analizy":
   - Włącz/wyłącz automatyczne uruchamianie
   - Ustaw godzinę i strefę czasową
   - Sprawdź status schedulera
   - Przeglądaj historię uruchomień
   - Uruchom analizę natychmiast
+
+### 8. Zapis flag tickerów
+- W sekcji "Zapis flag tickerów":
+  - Włącz/wyłącz automatyczny zapis historii flag
+  - Ustaw godzinę zapisu (domyślnie 23:30)
+  - Sprawdź status i historię zapisów
+  - Uruchom zapis natychmiast
 
 ## 🏗️ Architektura
 
@@ -154,6 +174,8 @@ analizator_rynku/
 - `informational_columns_versions` - wersje kolumn
 - `company_notes` - notatki spółek
 - `auto_schedule_runs` - historia automatycznych uruchomień
+- `company_flags` - aktualne flagi spółek
+- `flag_history` - historia zmian flag (dzienne snapshoty)
 
 ### Wersjonowanie
 - Każde uruchomienie ma przypisaną wersję reguł
@@ -197,6 +219,11 @@ auto_schedule:
   time: "09:00"
   timezone: "Europe/Warsaw"
   interval_hours: 24
+
+flag_snapshot:
+  enabled: true
+  time: "23:30"
+  timezone: "Europe/Warsaw"
 ```
 
 ## 🎯 Logika Analizy
@@ -230,6 +257,13 @@ auto_schedule:
 - Edycja i usuwanie
 - Historia zmian
 
+### Flagi spółek
+- **5 kolorów**: 🔴 Czerwony, 🟢 Zielony, 🟡 Żółty, 🔵 Niebieski, ⚪ Brak flagi
+- **Notatki**: Do 40 znaków per flaga
+- **UI**: Emoji z tooltipem na hover
+- **Historia**: Automatyczny dzienny zapis o 23:30
+- **Konfiguracja**: Zarządzanie w sekcji "Zapis flag tickerów"
+
 ### 🔄 Automatyczne Uruchamianie Analizy
 - **APScheduler**: Codzienne uruchamianie o zdefiniowanej godzinie
 - **Konfiguracja**: Włącz/wyłącz, czas, strefa czasowa
@@ -253,6 +287,16 @@ auto_schedule:
 - `POST /api/notes/<ticker>` - Dodaj notatkę
 - `PUT /api/notes/<ticker>/<number>` - Edytuj notatkę
 - `DELETE /api/notes/<ticker>/<number>` - Usuń notatkę
+
+### Flagi
+- `GET /api/flags/<ticker>` - Pobierz flagę spółki
+- `POST /api/flags/<ticker>` - Ustaw flagę spółki
+- `GET /api/flags/history/<ticker>` - Historia flag spółki
+- `GET /api/flags/report` - Raport wszystkich flag
+- `GET /api/flag-snapshot/status` - Status zapisu flag (publiczny)
+- `GET /api/flag-snapshot/history` - Historia zapisu flag (publiczny)
+- `POST /api/flag-snapshot/configure` - Konfiguracja zapisu flag (chroniony)
+- `POST /api/flag-snapshot/run-now` - Uruchom zapis flag teraz (chroniony)
 
 ## 📝 Logowanie
 
@@ -304,6 +348,21 @@ curl -X POST -H "X-API-Key: secret_key_123" \
   -H "Content-Type: application/json" \
   -d '{"enabled": true, "time": "09:00"}' \
   http://localhost:5001/api/auto-schedule/configure
+
+# Pobranie flag spółki
+curl http://localhost:5001/api/flags/AAPL
+
+# Ustawienie flagi (wymaga API key)
+curl -X POST -H "X-API-Key: secret_key_123" \
+  -H "Content-Type: application/json" \
+  -d '{"flag_color": "green", "flag_notes": "Dobra spółka"}' \
+  http://localhost:5001/api/flags/AAPL
+
+# Status zapisu flag
+curl http://localhost:5001/api/flag-snapshot/status
+
+# Historia zapisu flag
+curl http://localhost:5001/api/flag-snapshot/history
 ```
 
 ## 📝 Licencja

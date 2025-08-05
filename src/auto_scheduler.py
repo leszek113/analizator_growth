@@ -169,6 +169,85 @@ class AutoScheduler:
             # Zapisz błąd do bazy
             self._save_run_completion(run_id, end_time, "error", json.dumps(error_details), 0, execution_time)
     
+    def _run_flag_snapshot_job(self, run_id: str = None):
+        """Wykonuje codzienny snapshot flag - zapisuje aktualny stan wszystkich flag"""
+        try:
+            self._log_event('flag_snapshot_started', time=datetime.now().isoformat())
+            self.readable_logger.info("Rozpoczęto codzienny snapshot flag")
+            
+            # Pobierz wszystkie aktualne flagi
+            flags_df = self.db_manager.get_all_flags()
+            
+            if flags_df.empty:
+                self.readable_logger.info("Brak flag do zapisania w historii")
+                return
+            
+            # Zapisz snapshot do historii
+            snapshot_count = 0
+            for _, row in flags_df.iterrows():
+                ticker = row['ticker']
+                flag_color = row['flag_color']
+                flag_notes = row.get('flag_notes', '')
+                
+                # Sprawdź czy już jest wpis z dzisiaj dla tego tickera
+                today = datetime.now().date()
+                
+                # Zapisz do historii z powodem 'daily_snapshot'
+                success = self._save_flag_to_history(
+                    ticker, flag_color, flag_notes, 'daily_snapshot', run_id
+                )
+                
+                if success:
+                    snapshot_count += 1
+            
+            self._log_event('flag_snapshot_completed', 
+                           snapshot_count=snapshot_count,
+                           time=datetime.now().isoformat())
+            
+            self.readable_logger.info(f"Codzienny snapshot flag zakończony - zapisano {snapshot_count} flag")
+            
+        except Exception as e:
+            error_details = str(e)
+            self._log_event('flag_snapshot_failed', 
+                           error=error_details,
+                           time=datetime.now().isoformat())
+            self.readable_logger.error(f"Błąd podczas codziennego snapshotu flag: {error_details}")
+    
+    def _save_flag_to_history(self, ticker: str, flag_color: str, flag_notes: str, 
+                             change_reason: str, run_id: str = None) -> bool:
+        """Zapisuje flagę do historii"""
+        try:
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Sprawdź czy już jest wpis z dzisiaj dla tego tickera
+                today = datetime.now().date()
+                cursor.execute("""
+                    SELECT id FROM flag_history 
+                    WHERE ticker = ? AND DATE(changed_at) = ? AND change_reason = 'daily_snapshot'
+                """, (ticker, today))
+                
+                if cursor.fetchone():
+                    # Aktualizuj istniejący wpis
+                    cursor.execute("""
+                        UPDATE flag_history 
+                        SET flag_color = ?, flag_notes = ?, changed_at = CURRENT_TIMESTAMP
+                        WHERE ticker = ? AND DATE(changed_at) = ? AND change_reason = 'daily_snapshot'
+                    """, (flag_color, flag_notes, ticker, today))
+                else:
+                    # Dodaj nowy wpis
+                    cursor.execute("""
+                        INSERT INTO flag_history (ticker, flag_color, flag_notes, change_reason, run_id)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (ticker, flag_color, flag_notes, change_reason, run_id))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            self.readable_logger.error(f"Błąd podczas zapisywania flagi do historii: {e}")
+            return False
+    
     def _save_run_start(self, run_id: str, start_time: datetime):
         """Zapisuje rozpoczęcie uruchomienia do bazy"""
         try:
@@ -201,32 +280,56 @@ class AutoScheduler:
     
     def start(self):
         """Uruchamia scheduler"""
-        if not self.config['auto_schedule']['enabled']:
-            self.readable_logger.info("Automatyczne uruchamianie jest wyłączone")
+        jobs_added = False
+        
+        # Dodaj zadanie analizy jeśli włączone
+        if self.config['auto_schedule']['enabled']:
+            try:
+                time_str = self.config['auto_schedule']['time']
+                hour, minute = map(int, time_str.split(':'))
+                timezone = self.config['auto_schedule']['timezone']
+                
+                self.scheduler.add_job(
+                    func=self._run_analysis_job,
+                    trigger=CronTrigger(hour=hour, minute=minute, timezone=timezone),
+                    id='daily_analysis',
+                    name='Codzienna analiza',
+                    replace_existing=True
+                )
+                jobs_added = True
+                self.readable_logger.info(f"Dodano zadanie analizy - codziennie o {time_str} ({timezone})")
+            except Exception as e:
+                self.readable_logger.error(f"Błąd podczas dodawania zadania analizy: {e}")
+        
+        # Dodaj zadanie flag snapshot jeśli włączone
+        if self.config.get('flag_snapshot', {}).get('enabled', False):
+            try:
+                time_str = self.config['flag_snapshot']['time']
+                hour, minute = map(int, time_str.split(':'))
+                timezone = self.config['flag_snapshot']['timezone']
+                
+                self.scheduler.add_job(
+                    func=self._run_flag_snapshot_job,
+                    trigger=CronTrigger(hour=hour, minute=minute, timezone=timezone),
+                    id='flag_snapshot',
+                    name='Zapis flag tickerów',
+                    replace_existing=True
+                )
+                jobs_added = True
+                self.readable_logger.info(f"Dodano zadanie flag snapshot - codziennie o {time_str} ({timezone})")
+            except Exception as e:
+                self.readable_logger.error(f"Błąd podczas dodawania zadania flag snapshot: {e}")
+        
+        if not jobs_added:
+            self.readable_logger.info("Brak włączonych zadań")
             return
         
         try:
-            # Dodaj job
-            time_str = self.config['auto_schedule']['time']
-            hour, minute = map(int, time_str.split(':'))
-            timezone = self.config['auto_schedule']['timezone']
-            
-            self.scheduler.add_job(
-                func=self._run_analysis_job,
-                trigger=CronTrigger(hour=hour, minute=minute, timezone=timezone),
-                id='daily_analysis',
-                name='Codzienna analiza',
-                replace_existing=True
-            )
-            
             # Uruchom scheduler
             self.scheduler.start()
             
-            self._log_event("scheduler_started", 
-                           time=time_str, 
-                           timezone=timezone)
-            
-            self.readable_logger.info(f"Scheduler uruchomiony - analiza codziennie o {time_str} ({timezone})")
+            self._log_event("scheduler_started")
+            self.readable_logger.info("Scheduler uruchomiony")
             
         except Exception as e:
             self.readable_logger.error(f"Błąd podczas uruchamiania schedulera: {e}")
@@ -254,6 +357,26 @@ class AutoScheduler:
             self.start()
         
         self._log_event("config_updated", enabled=enabled, time=time, timezone=timezone)
+    
+    def update_flag_snapshot_config(self, enabled: bool, time: str, timezone: str = 'Europe/Warsaw'):
+        """Aktualizuje konfigurację flag snapshot"""
+        if 'flag_snapshot' not in self.config:
+            self.config['flag_snapshot'] = {}
+        
+        self.config['flag_snapshot']['enabled'] = enabled
+        self.config['flag_snapshot']['time'] = time
+        self.config['flag_snapshot']['timezone'] = timezone
+        
+        self._save_config()
+        
+        # Restart scheduler jeśli był uruchomiony
+        if self.scheduler.running:
+            self.stop()
+        
+        if enabled:
+            self.start()
+        
+        self._log_event("flag_snapshot_config_updated", enabled=enabled, time=time, timezone=timezone)
     
     def get_status(self) -> Dict:
         """Zwraca aktualny status schedulera"""

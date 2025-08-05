@@ -8,6 +8,7 @@ import sys
 import os
 import pandas as pd
 import yaml
+from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src.database_manager import DatabaseManager
@@ -92,7 +93,7 @@ def dashboard():
         }
         
         return render_template('dashboard.html', 
-                             latest_results=latest_results,
+                             latest_results={'stage1_companies': latest_results},
                              history=history,
                              stats=stats)
                              
@@ -106,20 +107,38 @@ def results():
     try:
         date_filter = request.args.get('date', '')
         ticker_filter = request.args.get('ticker', '')
+        show_all = request.args.get('show_all', 'false').lower() == 'true'
+        
+        # Określ typ widoku i datę dla nagłówka
+        view_type = 'latest'
+        view_date = ''
         
         if date_filter:
             # Filtrowanie po dacie
             companies = db_manager.get_companies_by_date(date_filter)
+            view_type = 'date'
+            view_date = date_filter
         elif ticker_filter:
             # Filtrowanie po tickerze
             companies = db_manager.get_companies_by_ticker(ticker_filter)
+            view_type = 'ticker'
+            view_date = ticker_filter
+        elif show_all:
+            # Wszystkie selekcje
+            companies = db_manager.get_all_results()
+            view_type = 'all'
         else:
             # Najnowsze wyniki
             companies = db_manager.get_latest_results()
+            view_type = 'latest'
+            view_date = db_manager.get_latest_run_date()
         
         if companies.empty:
             logger.warning(f"Brak danych do wyświetlenia w tabeli wyników (companies DataFrame empty)")
             return render_template('results.html', companies=[], message="Brak danych do wyświetlenia")
+        
+        # Sortuj po yield_netto malejąco (od największej do najmniejszej)
+        companies = companies.sort_values(by='yield_netto', ascending=False, na_position='last')
         
         # Konwertuj DataFrame na listę słowników dla template
         companies_list = []
@@ -127,6 +146,8 @@ def results():
             company_data = {
                 'ticker': row['ticker'],
                 'notes_count': row.get('notes_count', 0),
+                'flag_color': row.get('flag_color', 'none'),
+                'flag_notes': row.get('flag_notes', ''),
                 'selection_data_parsed': row.get('selection_data_parsed', {}),
                 'informational_data_parsed': row.get('informational_data_parsed', {}),
                 'yield': row.get('yield'),
@@ -139,7 +160,12 @@ def results():
             }
             companies_list.append(company_data)
         logger.info(f"Przekazuję do szablonu {len(companies_list)} spółek")
-        return render_template('results.html', results=companies_list)
+        return render_template('results.html', 
+                             results=companies_list, 
+                             view_type=view_type, 
+                             view_date=view_date,
+                             date_filter=date_filter,
+                             ticker_filter=ticker_filter)
         
     except Exception as e:
         logger.error(f"Błąd w results: {e}")
@@ -672,6 +698,184 @@ def run_auto_analysis_now():
     result = scheduler.run_now()
     
     return jsonify(result)
+
+# ===== API ENDPOINTY DLA FLAG SNAPSHOT =====
+
+@app.route('/api/flag-snapshot/status')
+def get_flag_snapshot_status():
+    """Zwraca status zadania flag snapshot"""
+    try:
+        from src.auto_scheduler import get_auto_scheduler
+        scheduler = get_auto_scheduler()
+        
+        # Pobierz konfigurację
+        config = scheduler.config.get('flag_snapshot', {})
+        
+        return jsonify({
+            'enabled': config.get('enabled', False),
+            'time': config.get('time', '23:30'),
+            'timezone': config.get('timezone', 'Europe/Warsaw'),
+            'scheduler_running': scheduler.scheduler.running,
+            'next_run': None  # TODO: dodać obliczanie następnego uruchomienia
+        })
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania statusu flag snapshot: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/flag-snapshot/configure', methods=['POST'])
+def configure_flag_snapshot():
+    """Konfiguruje zadanie flag snapshot (chroniony)"""
+    try:
+        # Sprawdź API key
+        api_key = request.headers.get('X-API-Key')
+        if api_key != 'secret_key_123':
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        data = request.get_json()
+        enabled = data.get('enabled', False)
+        time = data.get('time', '23:30')
+        timezone = data.get('timezone', 'Europe/Warsaw')
+        
+        from src.auto_scheduler import get_auto_scheduler
+        scheduler = get_auto_scheduler()
+        scheduler.update_flag_snapshot_config(enabled, time, timezone)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Konfiguracja flag snapshot zaktualizowana',
+            'config': {
+                'enabled': enabled,
+                'time': time,
+                'timezone': timezone
+            }
+        })
+    except Exception as e:
+        logger.error(f"Błąd podczas konfiguracji flag snapshot: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/flag-snapshot/run-now', methods=['POST'])
+def run_flag_snapshot_now():
+    """Uruchamia flag snapshot natychmiast (chroniony)"""
+    try:
+        # Sprawdź API key
+        api_key = request.headers.get('X-API-Key')
+        if api_key != 'secret_key_123':
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        from src.auto_scheduler import get_auto_scheduler
+        scheduler = get_auto_scheduler()
+        scheduler._run_flag_snapshot_job()
+        
+        return jsonify({'success': True, 'message': 'Flag snapshot został uruchomiony'})
+    except Exception as e:
+        logger.error(f"Błąd podczas uruchamiania flag snapshot: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ===== API ENDPOINTY DLA FLAG =====
+
+@app.route('/api/flags/<ticker>', methods=['GET'])
+def get_company_flag(ticker):
+    """
+    Pobiera flagę dla spółki
+    """
+    try:
+        flag = db_manager.get_company_flag(ticker.upper())
+        if flag:
+            return jsonify({'success': True, 'flag': flag})
+        else:
+            return jsonify({'success': True, 'flag': {'flag_color': 'none'}})
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania flagi dla {ticker}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/flags/<ticker>', methods=['POST'])
+def set_company_flag(ticker):
+    """
+    Ustawia flagę dla spółki
+    """
+    try:
+        data = request.get_json()
+        flag_color = data.get('flag_color')
+        flag_notes = data.get('flag_notes', '')[:40]  # Max 40 znaków
+        
+        if flag_color not in ['red', 'green', 'yellow', 'blue', 'none']:
+            return jsonify({'success': False, 'message': 'Nieprawidłowy kolor flagi'}), 400
+        
+        success = db_manager.set_company_flag(ticker.upper(), flag_color, flag_notes)
+        if success:
+            return jsonify({'success': True, 'message': 'Flaga została ustawiona'})
+        else:
+            return jsonify({'success': False, 'message': 'Błąd podczas ustawiania flagi'}), 500
+    except Exception as e:
+        logger.error(f"Błąd podczas ustawiania flagi dla {ticker}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/flags/history/<ticker>')
+def get_flag_history(ticker):
+    """
+    Pobiera historię flag dla spółki
+    """
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        history = db_manager.get_flag_history(ticker.upper(), limit)
+        return jsonify({'success': True, 'history': history.to_dict('records')})
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania historii flag dla {ticker}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/flags/report')
+def get_flags_report():
+    """
+    Generuje raport flag
+    """
+    try:
+        report = db_manager.get_flags_report()
+        return jsonify({'success': True, 'report': report})
+    except Exception as e:
+        logger.error(f"Błąd podczas generowania raportu flag: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/flags/snapshot', methods=['POST'])
+def run_flag_snapshot():
+    """Ręczne uruchomienie snapshotu flag (chroniony)"""
+    try:
+        # Sprawdź API key
+        api_key = request.headers.get('X-API-Key')
+        if api_key != 'secret_key_123':
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        # Uruchom snapshot
+        from src.auto_scheduler import get_auto_scheduler
+        scheduler = get_auto_scheduler()
+        scheduler._run_flag_snapshot_job()
+        
+        return jsonify({'success': True, 'message': 'Snapshot flag został uruchomiony'})
+    except Exception as e:
+        logger.error(f"Błąd podczas uruchamiania snapshotu flag: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/flag-snapshot/history')
+def get_flag_snapshot_history():
+    """Pobiera historię zapisu flag tickerów"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        
+        # Pobierz historię z bazy danych
+        history = db_manager.get_flag_snapshot_history(limit)
+        
+        return jsonify({
+            'success': True,
+            'history': history
+        })
+        
+    except Exception as e:
+        logger.error(f"Błąd podczas pobierania historii zapisu flag: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+        
+        return jsonify({'success': True, 'message': 'Snapshot flag został uruchomiony'})
+    except Exception as e:
+        logger.error(f"Błąd podczas uruchamiania snapshotu flag: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.errorhandler(404)
 def not_found(error):

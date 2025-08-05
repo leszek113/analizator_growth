@@ -270,7 +270,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-clock"></i> Automatyczne Uruchamianie
+                    <i class="fas fa-clock"></i> Automatyczne Uruchamianie Analizy
                 </h5>
             </div>
             <div class="card-body">
@@ -328,6 +328,69 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Zapis flag tickerów -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-flag"></i> Zapis flag tickerów
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="flag-snapshot-status">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Ładowanie...</span>
+                                </div>
+                                <span>Ładowanie statusu...</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="flag-snapshot-enabled">
+                            <label class="form-check-label" for="flag-snapshot-enabled">
+                                Włącz automatyczny zapis flag tickerów
+                            </label>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="flag-snapshot-time" class="form-label">Godzina uruchomienia</label>
+                                <input type="time" class="form-control" id="flag-snapshot-time" value="23:30">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="flag-snapshot-timezone" class="form-label">Strefa czasowa</label>
+                                <select class="form-select" id="flag-snapshot-timezone">
+                                    <option value="Europe/Warsaw">Europe/Warsaw</option>
+                                    <option value="UTC">UTC</option>
+                                    <option value="America/New_York">America/New_York</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-success me-2" id="save-flag-snapshot">
+                                <i class="fas fa-save"></i> Zapisz Konfigurację
+                            </button>
+                            <button type="button" class="btn btn-warning" id="run-flag-snapshot-now">
+                                <i class="fas fa-play"></i> Uruchom Teraz
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6>Historia Zapisów</h6>
+                        <div id="flag-snapshot-history">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Ładowanie...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -349,6 +412,47 @@ function showAlert(message, type = 'success') {
             alert.remove();
         }
     }, 5000);
+}
+
+// Ładowanie historii flag snapshot
+function loadFlagSnapshotHistory() {
+    fetch('/api/flag-snapshot/history?limit=5')
+        .then(response => response.json())
+        .then(data => {
+            const historyDiv = document.getElementById('flag-snapshot-history');
+            
+            if (data.success && data.history && data.history.length > 0) {
+                const historyHtml = data.history.map(record => `
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <small class="text-muted">${record.snapshot_date}</small>
+                                <br>
+                                <strong>${record.ticker}</strong>
+                                <span class="ms-2">
+                                    ${record.flag_color === 'none' ? '⚪' : 
+                                      record.flag_color === 'red' ? '🔴' :
+                                      record.flag_color === 'green' ? '🟢' :
+                                      record.flag_color === 'yellow' ? '🟡' :
+                                      record.flag_color === 'blue' ? '🔵' : '⚪'}
+                                </span>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">${record.flag_notes || ''}</small>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                historyDiv.innerHTML = historyHtml;
+            } else {
+                historyDiv.innerHTML = '<p class="text-muted">Brak historii zapisu flag</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Błąd podczas ładowania historii flag:', error);
+            document.getElementById('flag-snapshot-history').innerHTML = 
+                '<div class="alert alert-danger">Błąd podczas ładowania historii</div>';
+        });
 }
 
 // ===== FUNKCJE DLA AUTOMATYCZNEGO URZUCAMIANIA =====
@@ -661,5 +765,119 @@ function submitAddInfoColumn() {
         showAlert('Błąd podczas dodawania kolumny', 'danger');
     });
 }
+
+// ===== FUNKCJE DLA FLAG SNAPSHOT =====
+
+// Ładowanie statusu flag snapshot
+function loadFlagSnapshotStatus() {
+    fetch('/api/flag-snapshot/status')
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById('flag-snapshot-status');
+            const enabledCheckbox = document.getElementById('flag-snapshot-enabled');
+            const timeInput = document.getElementById('flag-snapshot-time');
+            const timezoneSelect = document.getElementById('flag-snapshot-timezone');
+            
+            // Aktualizuj checkbox
+            enabledCheckbox.checked = data.enabled;
+            
+            // Aktualizuj czas i strefę czasową
+            if (data.time) {
+                timeInput.value = data.time;
+            }
+            if (data.timezone) {
+                timezoneSelect.value = data.timezone;
+            }
+            
+            // Aktualizuj status
+            const statusHtml = `
+                <div class="mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge ${data.scheduler_running ? 'bg-success' : 'bg-secondary'} me-2">
+                            ${data.scheduler_running ? 'Aktywny' : 'Nieaktywny'}
+                        </span>
+                        <span class="text-muted">Scheduler</span>
+                    </div>
+                    ${data.next_run ? `
+                        <div class="text-muted">
+                            <small>Następne uruchomienie: ${new Date(data.next_run).toLocaleString('pl-PL')}</small>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            statusDiv.innerHTML = statusHtml;
+            
+            // Załaduj również historię
+            loadFlagSnapshotHistory();
+        })
+        .catch(error => {
+            console.error('Błąd podczas ładowania statusu flag snapshot:', error);
+            document.getElementById('flag-snapshot-status').innerHTML = 
+                '<div class="alert alert-danger">Błąd podczas ładowania statusu</div>';
+        });
+}
+
+// Zapisywanie konfiguracji flag snapshot
+document.getElementById('save-flag-snapshot').addEventListener('click', function() {
+    const enabled = document.getElementById('flag-snapshot-enabled').checked;
+    const time = document.getElementById('flag-snapshot-time').value;
+    const timezone = document.getElementById('flag-snapshot-timezone').value;
+    
+    fetch('/api/flag-snapshot/configure', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'secret_key_123'
+        },
+        body: JSON.stringify({
+            enabled: enabled,
+            time: time,
+            timezone: timezone
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Konfiguracja flag snapshot została zapisana', 'success');
+            loadFlagSnapshotStatus();
+        } else {
+            showAlert('Błąd: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Błąd podczas zapisywania konfiguracji', 'danger');
+    });
+});
+
+// Ręczne uruchomienie flag snapshot
+document.getElementById('run-flag-snapshot-now').addEventListener('click', function() {
+    if (confirm('Czy na pewno chcesz uruchomić zapis flag tickerów teraz?')) {
+        fetch('/api/flag-snapshot/run-now', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': 'secret_key_123'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Zapis flag tickerów został uruchomiony', 'success');
+            } else {
+                showAlert('Błąd: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Błąd podczas uruchamiania zapisu flag', 'danger');
+        });
+    }
+});
+
+// Inicjalizacja przy załadowaniu strony
+document.addEventListener('DOMContentLoaded', function() {
+    loadAutoScheduleStatus();
+    loadAutoScheduleHistory();
+    loadFlagSnapshotStatus();
+});
 </script>
 {% endblock %} 

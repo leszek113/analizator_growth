@@ -3,6 +3,39 @@
 {% block title %}Dashboard - Analizator Rynku{% endblock %}
 
 {% block content %}
+<style>
+    .flag-container {
+        text-align: center;
+        padding: 5px;
+        border-radius: 5px;
+        transition: background-color 0.2s;
+    }
+    
+    .flag-container:hover {
+        background-color: rgba(0,0,0,0.1);
+    }
+    
+    .flag-emoji {
+        font-size: 1.2rem;
+        cursor: pointer;
+    }
+    
+    .flag-emoji:hover {
+        transform: scale(1.2);
+        transition: transform 0.2s;
+    }
+    
+    .flag-select {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+    }
+    
+    .flag-select option {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+    }
+</style>
+
 <div class="row">
     <!-- Statystyki -->
     <div class="col-md-4">
@@ -58,17 +91,34 @@
                         <table class="table table-sm">
                             <thead>
                                 <tr>
+                                    <th>Flaga</th>
                                     <th>Ticker</th>
                                     <th>Nazwa</th>
                                     <th>Sektor</th>
                                     <th>Stochastic 1M</th>
                                     <th>Stochastic 1W</th>
                                     <th>Stochastic OK</th>
+                                    <th>Notatki</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for company in latest_results.stage1_companies.head(10).to_dict('records') %}
                                 <tr>
+                                    <td>
+                                        <div class="flag-container">
+                                            <span class="flag-display" 
+                                                  onclick="showFlagModal('{{ company.ticker }}', '{{ company.flag_color }}', '{{ company.flag_notes }}')"
+                                                  {% if company.flag_notes %}data-bs-toggle="tooltip" data-bs-placement="top" title="{{ company.flag_notes }}"{% endif %}
+                                                  style="cursor: pointer; font-size: 1.5rem;">
+                                                {% if company.flag_color == 'none' %}⚪
+                                                {% elif company.flag_color == 'red' %}🔴
+                                                {% elif company.flag_color == 'green' %}🟢
+                                                {% elif company.flag_color == 'yellow' %}🟡
+                                                {% elif company.flag_color == 'blue' %}🔵
+                                                {% else %}⚪{% endif %}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td>
                                         <a href="{{ url_for('company_history', ticker=company.ticker) }}">
                                             <strong>{{ company.ticker }}</strong>
@@ -100,6 +150,14 @@
                                         {% else %}
                                             <span class="badge bg-warning">⚠️</span>
                                         {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="notes-badge" onclick="showNotes('{{ company.ticker }}')" style="cursor: pointer;">
+                                            N-{{ "%02d"|format(company.notes_count) }}
+                                        </span>
+                                        <button class="btn btn-sm btn-outline-primary ms-1" onclick="addNote('{{ company.ticker }}')" title="Dodaj notatkę">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -174,4 +232,167 @@
         </div>
     </div>
 </div>
+
+<script>
+    // ===== FUNKCJE DLA FLAG =====
+    
+    function changeFlag(ticker, newFlag) {
+        const flagNames = {
+            'none': 'Brak flagi',
+            'red': 'Czerwona',
+            'green': 'Zielona', 
+            'yellow': 'Żółta',
+            'blue': 'Niebieska'
+        };
+        
+        // Pokaż modal z notatką jeśli flaga nie jest 'none'
+        if (newFlag !== 'none') {
+            const notes = prompt(`Dodaj notatkę do flagi ${flagNames[newFlag]} (max 40 znaków):`);
+            if (notes === null) {
+                // Anulowano - przywróć poprzednią wartość
+                const select = event.target;
+                select.value = select.getAttribute('data-previous-value') || 'none';
+                return;
+            }
+            
+            setFlag(ticker, newFlag, notes);
+        } else {
+            setFlag(ticker, newFlag, '');
+        }
+        
+        // Zapisz aktualną wartość jako poprzednią
+        event.target.setAttribute('data-previous-value', newFlag);
+    }
+    
+    function setFlag(ticker, flagColor, flagNotes) {
+        fetch(`/api/flags/${ticker}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                flag_color: flagColor, 
+                flag_notes: flagNotes 
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Flaga została ustawiona');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert('Błąd: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Błąd podczas ustawiania flagi');
+        });
+    }
+    
+    // Inicjalizacja tooltipów
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+    
+    // Funkcja do pokazywania modala flagi
+    function showFlagModal(ticker, currentFlag, currentNotes) {
+        const flagNames = {
+            'none': 'Brak flagi',
+            'red': 'Czerwona',
+            'green': 'Zielona', 
+            'yellow': 'Żółta',
+            'blue': 'Niebieska'
+        };
+        
+        const flagEmojis = {
+            'none': '⚪',
+            'red': '🔴',
+            'green': '🟢',
+            'yellow': '🟡',
+            'blue': '🔵'
+        };
+        
+        let modalHtml = `
+            <div class="modal fade" id="flagModal" tabindex="-1">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Flaga dla ${ticker}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <div class="mb-3">
+                                <label class="form-label">Wybierz kolor flagi:</label>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button class="btn btn-outline-secondary flag-btn" data-flag="none" style="font-size: 1.5rem; width: 50px; height: 50px;">⚪</button>
+                                    <button class="btn btn-outline-secondary flag-btn" data-flag="red" style="font-size: 1.5rem; width: 50px; height: 50px;">🔴</button>
+                                    <button class="btn btn-outline-secondary flag-btn" data-flag="green" style="font-size: 1.5rem; width: 50px; height: 50px;">🟢</button>
+                                    <button class="btn btn-outline-secondary flag-btn" data-flag="yellow" style="font-size: 1.5rem; width: 50px; height: 50px;">🟡</button>
+                                    <button class="btn btn-outline-secondary flag-btn" data-flag="blue" style="font-size: 1.5rem; width: 50px; height: 50px;">🔵</button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="flagNotes" class="form-label">Notatka (max 40 znaków):</label>
+                                <input type="text" class="form-control" id="flagNotes" maxlength="40" value="${currentNotes || ''}" placeholder="Opcjonalna notatka">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                            <button type="button" class="btn btn-primary" onclick="saveFlag('${ticker}')">Zapisz</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Usuń istniejący modal jeśli istnieje
+        const existingModal = document.getElementById('flagModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Dodaj nowy modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Pokaż modal
+        const modal = new bootstrap.Modal(document.getElementById('flagModal'));
+        modal.show();
+        
+        // Zaznacz aktualną flagę
+        const currentBtn = document.querySelector(`[data-flag="${currentFlag}"]`);
+        if (currentBtn) {
+            currentBtn.classList.remove('btn-outline-secondary');
+            currentBtn.classList.add('btn-primary');
+        }
+        
+        // Obsługa kliknięć na flagi
+        document.querySelectorAll('.flag-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Usuń zaznaczenie ze wszystkich
+                document.querySelectorAll('.flag-btn').forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-secondary');
+                });
+                // Zaznacz klikniętą
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-primary');
+            });
+        });
+    }
+    
+    // Funkcja do zapisywania flagi
+    function saveFlag(ticker) {
+        const selectedFlag = document.querySelector('.flag-btn.btn-primary').dataset.flag;
+        const notes = document.getElementById('flagNotes').value;
+        
+        setFlag(ticker, selectedFlag, notes);
+        
+        // Zamknij modal
+        bootstrap.Modal.getInstance(document.getElementById('flagModal')).hide();
+    }
+</script>
 {% endblock %} 
