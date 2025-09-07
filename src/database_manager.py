@@ -240,9 +240,9 @@ class DatabaseManager:
             stage2_df: DataFrame z wynikami Etapu 2
         """
         try:
-            # Importuj Yahoo Finance Analyzer dla pobierania cen
-            from src.yahoo_finance_analyzer import YahooFinanceAnalyzer
-            yahoo_analyzer = YahooFinanceAnalyzer()
+            # Importuj Stock Data Manager dla pobierania cen i obliczania Stochastic
+            from src.stock_data_manager import StockDataManager
+            stock_manager = StockDataManager()
             with sqlite3.connect(self.db_path) as conn:
                 # Przygotuj dane do zapisu
                 records = []
@@ -275,16 +275,27 @@ class DatabaseManager:
                     if yield_value is not None:
                         yield_netto_value = yield_value * 0.81
                     
+                    # Aktualizuj dane historyczne dla spółki
+                    try:
+                        logger.info(f"Aktualizuję dane historyczne dla {ticker}")
+                        stock_manager.update_stock_data(ticker)
+                    except Exception as e:
+                        logger.warning(f"Błąd podczas aktualizacji danych dla {ticker}: {e}")
+                    
                     # Pobierz aktualną cenę i oblicz cenę dla Yield 5%
                     current_price = None
                     price_for_5_percent_yield = None
                     
                     try:
-                        current_price = yahoo_analyzer.get_current_price(ticker)
-                        if current_price and yield_value:
-                            price_for_5_percent_yield = self.calculate_price_for_5_percent_yield(
-                                ticker, yield_value, current_price
-                            )
+                        # Pobierz ostatnią cenę z danych historycznych
+                        data_1d = stock_manager.get_stock_data(ticker, '1D', limit=1)
+                        if not data_1d.empty:
+                            current_price = float(data_1d['Close'].iloc[-1])
+                            
+                            if current_price and yield_value:
+                                price_for_5_percent_yield = self.calculate_price_for_5_percent_yield(
+                                    ticker, yield_value, current_price
+                                )
                     except Exception as e:
                         logger.warning(f"Nie można pobrać ceny dla {ticker}: {e}")
                     
@@ -305,10 +316,10 @@ class DatabaseManager:
                         # Pola cenowe
                         'current_price': current_price,
                         'price_for_5_percent_yield': price_for_5_percent_yield,
-                        # Informacje o Etapie 2
-                        'stochastic_1m': stage2_data['stochastic_1m'].iloc[0] if not stage2_data.empty else None,
-                        'stochastic_1w': stage2_data['stochastic_1w'].iloc[0] if not stage2_data.empty else None,
-                        'stage2_passed': stage2_data['stage2_passed'].iloc[0] if not stage2_data.empty else False
+                        # Informacje o Etapie 2 - oblicz z lokalnych danych
+                        'stochastic_1m': None,
+                        'stochastic_1w': None,
+                        'stage2_passed': False
                     }
                     records.append(record)
                 
@@ -316,7 +327,36 @@ class DatabaseManager:
                 df_to_save = pd.DataFrame(records)
                 df_to_save.to_sql('stage1_companies', conn, if_exists='append', index=False)
                 
+                # Oblicz Stochastic dla wszystkich spółek
+                logger.info("Obliczam Stochastic dla wszystkich spółek...")
+                for record in records:
+                    ticker = record['ticker']
+                    try:
+                        stochastic_values = stock_manager.get_stochastic_values(ticker)
+                        if stochastic_values:
+                            # Aktualizuj rekord w bazie
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                UPDATE stage1_companies 
+                                SET stochastic_1m = ?, stochastic_1w = ?, stage2_passed = ?
+                                WHERE run_id = ? AND ticker = ?
+                            """, (
+                                stochastic_values.get('1M'),
+                                stochastic_values.get('1W'),
+                                (stochastic_values.get('1M', 100) < 30) or (stochastic_values.get('1W', 100) < 30),
+                                run_id,
+                                ticker
+                            ))
+                    except Exception as e:
+                        logger.warning(f"Błąd podczas obliczania Stochastic dla {ticker}: {e}")
+                
+                conn.commit()
                 logger.info(f"Zapisano {len(records)} spółek Etapu 1 z danymi Etapu 2 dla uruchomienia {run_id}")
+                
+                # Masowa aktualizacja danych historycznych dla wszystkich wybranych spółek
+                selected_tickers = [record['ticker'] for record in records]
+                logger.info(f"Rozpoczynam masową aktualizację danych dla {len(selected_tickers)} spółek")
+                stock_manager.update_all_stock_data(selected_tickers)
                 
         except Exception as e:
             logger.error(f"Błąd podczas zapisywania spółek Etapu 1: {e}")

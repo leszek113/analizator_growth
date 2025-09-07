@@ -1,19 +1,32 @@
 # Konfiguracja wersji aplikacji
 version:
   major: 1
-  minor: 0
+  minor: 1
   patch: 0
-  build: 1
+  build: 0
   
 # Informacje o wersji
 info:
   name: "Analizator Rynku"
-  full_name: "Analizator Rynku v1.0.0"
+  full_name: "Analizator Rynku v1.1.0"
   description: "System analizy spółek giełdowych z selekcją i oceną"
-  release_date: "2024-01-15"
+  release_date: "2025-09-07"
   
 # Historia wersji
 changelog:
+  "1.1.0":
+    date: "2025-09-07"
+    changes:
+      - "Nowy system danych historycznych"
+      - "Inteligentna aktualizacja danych (tylko nowe)"
+      - "Lokalne obliczanie Stochastic 36,12,12"
+      - "Agregacja danych dziennych do tygodniowych i miesięcznych"
+      - "Optymalizacja bazy danych (tylko dane dzienne)"
+      - "5-letnia historia danych"
+      - "Naprawa błędów w obliczaniu Stochastic"
+      - "System wersjonowania aplikacji"
+      - "Ulepszone logowanie i monitoring"
+      
   "1.0.0":
     date: "2024-01-15"
     changes:

@@ -1,12 +1,23 @@
-# Analizator Rynku - v1.0 🎯
+# Analizator Rynku - v1.1.0 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
+
+## 🆕 Co nowego w v1.1.0
+
+- **📈 Nowy system danych historycznych** - inteligentne pobieranie i przechowywanie danych
+- **⚡ Lokalne obliczanie Stochastic** - szybsze i niezawodne obliczenia wskaźników
+- **💾 Optymalizacja bazy danych** - tylko dane dzienne z agregacją do tygodniowych/miesięcznych
+- **🔄 Inteligentna aktualizacja** - pobieranie tylko nowych danych, oszczędność API calls
+- **📊 5-letnia historia** - pełne dane historyczne dla precyzyjnych obliczeń
+- **🐛 Naprawa błędów** - poprawione obliczanie Stochastic dla wszystkich spółek
 
 ## 🚀 Funkcjonalności
 
 ### 📊 Analiza i Selekcja
 - **Etap 1**: Automatyczna selekcja spółek z Google Sheets na podstawie reguł (JEDYNA SELEKCJA)
 - **Etap 2**: Analiza Yahoo Finance + Stochastic Oscillator (DODATKOWE DANE INFORMACYJNE)
+- **Dane historyczne**: 5-letnia historia cen z inteligentną aktualizacją
+- **Stochastic 36,12,12**: Lokalne obliczanie dla 1M i 1W z pełnej historii
 - **Wersjonowanie**: Pełna historia zmian reguł i danych
 - **Baza danych**: SQLite z archiwizacją wszystkich wyników
 
