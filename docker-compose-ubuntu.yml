@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   analizator-rynku:
-    build: .
+    image: leszek113/analizator-rynku:v1.1.0
     container_name: analizator-rynku-v1.1.0
     ports:
       - "5001:5001"
@@ -11,16 +11,13 @@ services:
       - ./data:/app/data
       # Logi aplikacji
       - ./logs:/app/logs
-      # Pliki konfiguracyjne (opcjonalne)
+      # Pliki konfiguracyjne
       - ./config:/app/config
-      # Credentials Google Sheets (opcjonalne)
+      # Credentials Google Sheets
       - ./secrets:/app/secrets
     environment:
       - FLASK_ENV=production
       - PYTHONPATH=/app
-      - APP_VERSION=v1.1.0
-      - APP_BUILD=0
-      - APP_RELEASE_DATE=2025-09-07
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/"]
@@ -31,4 +28,4 @@ services:
 
 volumes:
   data:
-  logs: 
+  logs:

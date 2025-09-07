@@ -10,6 +10,8 @@ Automatyczny system analizy i selekcji spółek dywidendowych z integracją Goog
 - **🔄 Inteligentna aktualizacja** - pobieranie tylko nowych danych, oszczędność API calls
 - **📊 5-letnia historia** - pełne dane historyczne dla precyzyjnych obliczeń
 - **🐛 Naprawa błędów** - poprawione obliczanie Stochastic dla wszystkich spółek
+- **🐳 Wersja wbudowana w Docker** - automatyczne przenoszenie wersji z obrazem
+- **🔧 Multi-arch support** - obsługa linux/amd64 i linux/arm64
 
 ## 🚀 Funkcjonalności
 

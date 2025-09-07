@@ -1,4 +1,4 @@
-# Analizator Rynku v1.0 - Docker Image
+# Analizator Rynku v1.1.0 - Docker Image
 FROM python:3.11-slim
 
 # Ustawienie zmiennych środowiskowych
@@ -27,6 +27,11 @@ COPY . .
 
 # Tworzenie katalogów dla danych
 RUN mkdir -p /app/data /app/logs /app/secrets
+
+# Ustawienie wersji aplikacji jako zmiennej środowiskowej
+ENV APP_VERSION="v1.1.0"
+ENV APP_BUILD="0"
+ENV APP_RELEASE_DATE="2025-09-07"
 
 # Ustawienie uprawnień
 RUN chmod +x /app/docker-entrypoint.sh

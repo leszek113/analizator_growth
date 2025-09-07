@@ -26,6 +26,9 @@ changelog:
       - "Naprawa błędów w obliczaniu Stochastic"
       - "System wersjonowania aplikacji"
       - "Ulepszone logowanie i monitoring"
+      - "Wersja wbudowana w obraz Docker"
+      - "Multi-arch support (linux/amd64 + linux/arm64)"
+      - "Automatyczne przenoszenie wersji z obrazem"
       
   "1.0.0":
     date: "2024-01-15"

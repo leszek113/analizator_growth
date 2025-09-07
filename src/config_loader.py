@@ -121,8 +121,31 @@ class ConfigLoader:
         return api_config.get('max_retries', 3)
     
     def get_version_info(self) -> Dict[str, Any]:
-        """Pobiera informacje o wersji"""
-        return self.config.get('version', {})
+        """Pobiera informacje o wersji z pliku lub zmiennych środowiskowych"""
+        # Sprawdź zmienne środowiskowe Docker
+        docker_version = os.getenv('APP_VERSION')
+        docker_build = os.getenv('APP_BUILD')
+        docker_release_date = os.getenv('APP_RELEASE_DATE')
+        
+        if docker_version:
+            # Użyj wersji z Docker
+            return {
+                'version': {
+                    'major': int(docker_version.split('.')[0].replace('v', '')),
+                    'minor': int(docker_version.split('.')[1]),
+                    'patch': int(docker_version.split('.')[2]),
+                    'build': int(docker_build) if docker_build else 0
+                },
+                'info': {
+                    'name': 'Analizator Rynku',
+                    'full_name': f'Analizator Rynku {docker_version}',
+                    'description': 'System analizy spółek giełdowych z selekcją i oceną',
+                    'release_date': docker_release_date or '2025-09-07'
+                }
+            }
+        else:
+            # Użyj wersji z pliku
+            return self.config.get('version', {})
     
     def get_version_string(self) -> str:
         """Pobiera string wersji (np. '1.0.0')"""
