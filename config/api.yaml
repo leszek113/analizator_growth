@@ -1,0 +1,24 @@
+# Konfiguracja API i bezpieczeństwa
+api:
+  key: "{{ env.API_KEY }}"
+  timeout: 30
+  max_retries: 3
+
+security:
+  enable_api_auth: true
+  allowed_ips: []  # Puste = wszystkie IP
+  session_timeout: 3600  # 1 godzina
+
+# Konfiguracja dla różnych środowisk
+environments:
+  development:
+    api_key: "dev_key_change_me"
+    debug: true
+    
+  production:
+    api_key: "{{ env.API_KEY }}"
+    debug: false
+    
+  testing:
+    api_key: "test_key_123"
+    debug: true

@@ -104,7 +104,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                📊 Analizator Rynku
+                📊 {{ app_name }} <small class="text-muted">{{ full_version }}</small>
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -221,5 +221,22 @@
     </script>
     
     {% block scripts %}{% endblock %}
+    
+    <!-- Stopka -->
+    <footer class="bg-dark text-light py-3 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">{{ app_name }} {{ full_version }}</p>
+                    <small class="text-muted">{{ app_description }}</small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">
+                        © {{ current_year }} - Wersja {{ version }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html> 

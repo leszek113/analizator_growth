@@ -5,7 +5,7 @@ selection_rules:
   country:
     column: "Country"
     operator: "in"
-    values: ["US", "UK", "Canada"]
+    values: ["USA", "UK", "Canada"]
   
   quality_rating:
     column: "Quality Rating (out Of 13)"

@@ -51,16 +51,22 @@ venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
-### 4. Konfiguracja Google Sheets
+### 4. Konfiguracja zmiennych środowiskowych
+1. Skopiuj plik `env.example` do `.env`
+2. Ustaw odpowiednie wartości w pliku `.env`:
+   ```bash
+   cp env.example .env
+   # Edytuj .env i ustaw API_KEY i inne wartości
+   ```
+
+### 5. Konfiguracja Google Sheets
 1. Utwórz projekt w [Google Cloud Console](https://console.cloud.google.com/)
 2. Włącz Google Sheets API
 3. Utwórz Service Account i pobierz `credentials.json`
 4. Umieść plik w folderze `secrets/`
-
-### 5. Konfiguracja Google Sheets
-1. Utwórz arkusz z danymi spółek
-2. Udostępnij arkusz dla Service Account email
-3. Zaktualizuj `GOOGLE_SHEET_ID` w `src/import_google_sheet.py`
+5. Utwórz arkusz z danymi spółek
+6. Udostępnij arkusz dla Service Account email
+7. Zaktualizuj `GOOGLE_SHEET_ID` w `src/import_google_sheet.py`
 
 ## 🚀 Uruchomienie
 
@@ -78,7 +84,7 @@ python app.py
 Aplikacja będzie dostępna pod adresem: `http://localhost:5001`
 
 ### Ubuntu/Docker (Środowisko testowe)
-Szczegółowa instrukcja dla środowiska Docker znajduje się w pliku: [e ebdocs/docker-installation.md](docs/docker-installation.md)
+Szczegółowa instrukcja dla środowiska Docker znajduje się w pliku: [docs/docker-installation.md](docs/docker-installation.md)
 
 **Szybki start:**
 ```bash
@@ -272,6 +278,20 @@ flag_snapshot:
 - **API Endpointy**: Status, health check, konfiguracja
 - **UI**: Sekcja w Konfiguracji z zarządzaniem
 - **Metryki**: Czas wykonania, liczba spółek, status błędów
+
+## 🔐 Bezpieczeństwo
+
+### API Key
+Aplikacja używa API Key do autoryzacji chronionych endpointów. Ustaw zmienną środowiskową:
+```bash
+export API_KEY="your_secret_api_key_here"
+```
+
+### Chronione endpointy
+Wszystkie endpointy z `POST` metodami wymagają nagłówka:
+```
+X-API-Key: your_secret_api_key_here
+```
 
 ## 🌐 API Endpointy
 

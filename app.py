@@ -14,6 +14,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from src.database_manager import DatabaseManager
 from src.stage2_analysis import main as run_analysis
 from src.auto_scheduler import get_auto_scheduler, init_auto_scheduler
+from src.config_loader import get_api_key, is_api_auth_enabled, get_version_string, get_full_version_string, get_app_name, get_app_description
 import logging
 
 # Konfiguracja logowania
@@ -25,6 +26,17 @@ app.secret_key = 'analizator_rynku_secret_key'
 
 # Inicjalizacja menedżera bazy danych
 db_manager = DatabaseManager()
+
+@app.context_processor
+def inject_globals():
+    """Wstrzykuje globalne zmienne do wszystkich szablonów"""
+    return {
+        'current_year': datetime.now().year,
+        'app_name': get_app_name(),
+        'app_description': get_app_description(),
+        'version': get_version_string(),
+        'full_version': get_full_version_string()
+    }
 
 def load_config_files():
     """
@@ -663,10 +675,11 @@ def get_auto_schedule_history():
 @app.route('/api/auto-schedule/configure', methods=['POST'])
 def configure_auto_schedule():
     """Konfiguruje automatyczne uruchamianie (chroniony)"""
-    # Prosta autoryzacja - w przyszłości można dodać proper auth
-    api_key = request.headers.get('X-API-Key')
-    if api_key != 'secret_key_123':  # TODO: Przenieść do konfiguracji
-        return jsonify({"error": "Unauthorized"}), 401
+    # Sprawdź autoryzację API
+    if is_api_auth_enabled():
+        api_key = request.headers.get('X-API-Key')
+        if api_key != get_api_key():
+            return jsonify({"error": "Unauthorized"}), 401
     
     data = request.get_json()
     enabled = data.get('enabled', False)
@@ -689,10 +702,11 @@ def configure_auto_schedule():
 @app.route('/api/auto-schedule/run-now', methods=['POST'])
 def run_auto_analysis_now():
     """Uruchamia analizę natychmiast (chroniony)"""
-    # Prosta autoryzacja
-    api_key = request.headers.get('X-API-Key')
-    if api_key != 'secret_key_123':
-        return jsonify({"error": "Unauthorized"}), 401
+    # Sprawdź autoryzację API
+    if is_api_auth_enabled():
+        api_key = request.headers.get('X-API-Key')
+        if api_key != get_api_key():
+            return jsonify({"error": "Unauthorized"}), 401
     
     scheduler = get_auto_scheduler()
     result = scheduler.run_now()
@@ -727,9 +741,10 @@ def configure_flag_snapshot():
     """Konfiguruje zadanie flag snapshot (chroniony)"""
     try:
         # Sprawdź API key
-        api_key = request.headers.get('X-API-Key')
-        if api_key != 'secret_key_123':
-            return jsonify({'error': 'Unauthorized'}), 401
+        if is_api_auth_enabled():
+            api_key = request.headers.get('X-API-Key')
+            if api_key != get_api_key():
+                return jsonify({'error': 'Unauthorized'}), 401
         
         data = request.get_json()
         enabled = data.get('enabled', False)
@@ -758,9 +773,10 @@ def run_flag_snapshot_now():
     """Uruchamia flag snapshot natychmiast (chroniony)"""
     try:
         # Sprawdź API key
-        api_key = request.headers.get('X-API-Key')
-        if api_key != 'secret_key_123':
-            return jsonify({'error': 'Unauthorized'}), 401
+        if is_api_auth_enabled():
+            api_key = request.headers.get('X-API-Key')
+            if api_key != get_api_key():
+                return jsonify({'error': 'Unauthorized'}), 401
         
         from src.auto_scheduler import get_auto_scheduler
         scheduler = get_auto_scheduler()
@@ -840,9 +856,10 @@ def run_flag_snapshot():
     """Ręczne uruchomienie snapshotu flag (chroniony)"""
     try:
         # Sprawdź API key
-        api_key = request.headers.get('X-API-Key')
-        if api_key != 'secret_key_123':
-            return jsonify({'error': 'Unauthorized'}), 401
+        if is_api_auth_enabled():
+            api_key = request.headers.get('X-API-Key')
+            if api_key != get_api_key():
+                return jsonify({'error': 'Unauthorized'}), 401
         
         # Uruchom snapshot
         from src.auto_scheduler import get_auto_scheduler
@@ -871,11 +888,6 @@ def get_flag_snapshot_history():
     except Exception as e:
         logger.error(f"Błąd podczas pobierania historii zapisu flag: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-        
-        return jsonify({'success': True, 'message': 'Snapshot flag został uruchomiony'})
-    except Exception as e:
-        logger.error(f"Błąd podczas uruchamiania snapshotu flag: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.errorhandler(404)
 def not_found(error):
