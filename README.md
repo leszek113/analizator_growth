@@ -11,6 +11,7 @@ Automatyczny system analizy i selekcji spółek dywidendowych z integracją Goog
 - **🔐 Bezpieczeństwo** - zaktualizowane klucze API na bezpieczniejsze placeholder'y
 - **📝 Debug logging** - dodane logi debugowania dla lepszego śledzenia procesu selekcji
 - **📚 Dokumentacja** - zaktualizowana dokumentacja deployment'u
+- **📈 Nowe kolumny informacyjne** - dodane "Discount To Fair Value" i "Market Cap (Billion)" z Google Sheets
 
 ## 🆕 Co nowego w v1.1.0
 
@@ -251,6 +252,8 @@ informational_columns:
   - "Company"
   - "Sector"
   - "Date Edited"
+  - "Discount To Fair Value"
+  - "Market Cap (Billion)"
 ```
 
 ### Automatyczne uruchamianie (`config/auto_schedule.yaml`)

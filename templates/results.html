@@ -91,6 +91,8 @@
                                     <th>QRating</th>
                                     <th>DivGrStr</th>
                                     <th>Date Edited</th>
+                                    <th>Discount To FV</th>
+                                    <th>Market Cap (B)</th>
                                     <th>Yield Net</th>
                                     <th>YieldNet 5% Price</th>
                                     <th>Sto 36,12,12 1M</th>
@@ -133,6 +135,8 @@
                                     </td>
                                     <td>{{ company.selection_data_parsed.get('dividend_growth_streak', 'N/A') }}</td>
                                     <td>{{ company.informational_data_parsed.get('date_edited', 'N/A') }}</td>
+                                    <td>{{ company.informational_data_parsed.get('discount_to_fair_value', 'N/A') }}</td>
+                                    <td>{{ company.informational_data_parsed.get('market_cap_billion', 'N/A') }}</td>
                                     <td>
                                         {% if company.yield_netto %}
                                             {{ "%.2f"|format(company.yield_netto) }}%
