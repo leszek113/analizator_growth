@@ -4,7 +4,10 @@ import json
 from datetime import datetime
 from typing import List, Dict, Optional
 import logging
-from .cache_manager import cached, invalidate_cache
+try:
+    from .cache_manager import cached, invalidate_cache
+except ImportError:
+    from cache_manager import cached, invalidate_cache
 
 # Konfiguracja logowania
 logging.basicConfig(level=logging.INFO)
