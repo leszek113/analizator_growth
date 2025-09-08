@@ -1,4 +1,4 @@
-# Analizator Growth v1.1.0 - Docker Image
+# Analizator Growth v1.1.2 - Docker Image
 FROM python:3.11-slim
 
 # Ustawienie zmiennych środowiskowych

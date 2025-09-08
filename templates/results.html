@@ -136,9 +136,28 @@
                                     <td>{{ company.selection_data_parsed.get('dividend_growth_streak', 'N/A') }}</td>
                                     <td>{{ company.informational_data_parsed.get('date_edited', 'N/A') }}</td>
                                     <td>
-                                        {% set discount_value = company.informational_data_parsed.get('discount_to_fair_value', 'N/A') %}
-                                        {% if discount_value != 'N/A' and discount_value is string and '%' in discount_value %}
-                                            {{ discount_value }}
+                                        {% set current_price = company.informational_data_parsed.get('current_price', 'N/A') %}
+                                        {% set historical_fair_value = company.informational_data_parsed.get('historical_fair_value', 'N/A') %}
+                                        
+                                        {% if current_price != 'N/A' and historical_fair_value != 'N/A' %}
+                                            {% set current_price_clean = current_price.replace('$', '').replace(',', '') %}
+                                            {% set historical_fv_clean = historical_fair_value.replace('%', '').replace(',', '') %}
+                                            
+                                            {% if current_price_clean.replace('.', '').replace('-', '').isdigit() and historical_fv_clean.replace('.', '').replace('-', '').isdigit() %}
+                                                {% set current_price_num = current_price_clean | float %}
+                                                {% set historical_fv_num = (historical_fv_clean | float) / 100 %}
+                                                
+                                                {% set discount_dollars = historical_fv_num - current_price_num %}
+                                                {% set discount_percent = (discount_dollars / historical_fv_num) * 100 %}
+                                                
+                                                {% if discount_percent >= 0 %}
+                                                    +{{ "%.2f"|format(discount_percent) }}%
+                                                {% else %}
+                                                    {{ "%.2f"|format(discount_percent) }}%
+                                                {% endif %}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
                                         {% else %}
                                             N/A
                                         {% endif %}
@@ -353,14 +372,14 @@ $(document).ready(function() {
             url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pl.json'
         },
         pageLength: 25,
-        order: [[8, 'desc']], // Sortuj domyślnie po Yield Net (kolumna 8) malejąco
+        order: [[10, 'desc']], // Sortuj domyślnie po Yield Net (kolumna 10) malejąco
         columnDefs: [
             {
                 targets: [0, 1, 2, 3, 4, 5, 6, 7], // Kolumny tekstowe
                 type: 'string'
             },
             {
-                targets: [8, 9, 10, 11], // Kolumny numeryczne (Yield Net, Cena 5%, Stochastic)
+                targets: [8, 9, 10, 11, 12, 13], // Kolumny numeryczne (Discount To FV, Market Cap, Yield Net, Cena 5%, Stochastic)
                 type: 'num',
                 render: function(data, type, row) {
                     if (type === 'sort') {
@@ -374,7 +393,7 @@ $(document).ready(function() {
                 }
             },
             {
-                targets: [12, 13], // Kolumny Notatki i Akcje - nie sortuj
+                targets: [14, 15], // Kolumny Notatki i Akcje - nie sortuj
                 orderable: false
             }
         ],

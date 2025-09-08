@@ -1,6 +1,16 @@
-# Analizator Growth - v1.1.1 🎯
+# Analizator Growth - v1.1.2 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
+
+## 🆕 Co nowego w v1.1.2
+
+- **📊 Nowe kolumny informacyjne** - Current Price, Historical Fair Value, Market Cap z Google Sheets
+- **🧮 Obliczanie Discount to Fair Value** - automatyczne obliczanie w procentach (np. +13.89%)
+- **💰 Formatowanie Market Cap** - wyświetlanie w miliardach dolarów (np. $15.2 B)
+- **🔧 Naprawa sortowania** - wszystkie kolumny sortowalne, w tym "Sto 36,12,12 1M" i "Sto 36,12,12 1W"
+- **📈 Poprawka obliczeń** - Historical Fair Value (60205.16% = $602.05)
+- **🗑️ Czyszczenie bazy** - funkcja czyszczenia bazy przed nową analizą
+- **📚 Ulepszona dokumentacja** - zaktualizowane instrukcje użytkowania
 
 ## 🆕 Co nowego w v1.1.1
 
@@ -11,7 +21,6 @@ Automatyczny system analizy i selekcji spółek dywidendowych z integracją Goog
 - **🔐 Bezpieczeństwo** - zaktualizowane klucze API na bezpieczniejsze placeholder'y
 - **📝 Debug logging** - dodane logi debugowania dla lepszego śledzenia procesu selekcji
 - **📚 Dokumentacja** - zaktualizowana dokumentacja deployment'u
-- **📈 Nowe kolumny informacyjne** - dodane "Historical Fair Value" (procenty) i "Market Cap (Billion)" (miliardy $) z Google Sheets
 
 ## 🆕 Co nowego w v1.1.0
 
@@ -244,16 +253,20 @@ selection_rules:
 ### Kolumny informacyjne (`config/data_columns.yaml`)
 ```yaml
 selection_columns:
-  - "Country"
-  - "Yield"
-  - "Quality Rating (out Of 13)"
+  country: "Country"
+  quality_rating: "Quality Rating (out Of 13)"
+  yield: "Yield"
+  dividend_growth_streak: "Dividend Growth Streak (Years)"
+  sp_credit_rating: "S&P Credit Rating"
+  dk_rating: "DK Rating"
 
 informational_columns:
-  - "Company"
-  - "Sector"
-  - "Date Edited"
-  - "Historical Fair Value"  # Wyświetlane jako procenty
-  - "Market Cap (Billion)"   # Wyświetlane w miliardach dolarów
+  date_edited: "Date Edited"
+  company: "Company"
+  sector: "Sector"
+  current_price: "Current Price"  # Cena aktualna w dolarach
+  historical_fair_value: "Historical Fair Value"  # Historical Fair Value w procentach (ale to są dolary)
+  market_cap_billion: "Market Cap (Billion)"  # Market Cap w miliardach dolarów
 ```
 
 ### Automatyczne uruchamianie (`config/auto_schedule.yaml`)

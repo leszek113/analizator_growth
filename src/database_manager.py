@@ -249,8 +249,10 @@ class DatabaseManager:
                 for _, row in stage1_df.iterrows():
                     ticker = row.get('Ticker', row.get('Ticker_3', ''))
                     
-                    # Znajdź dane z Etapu 2 dla tego tickera
-                    stage2_data = stage2_df[stage2_df['ticker'] == ticker]
+                    # Znajdź dane z Etapu 2 dla tego tickera (jeśli dostępne)
+                    stage2_data = None
+                    if stage2_df is not None:
+                        stage2_data = stage2_df[stage2_df['ticker'] == ticker]
                     
                     # Załaduj konfigurację kolumn
                     config = self._load_data_columns_config()

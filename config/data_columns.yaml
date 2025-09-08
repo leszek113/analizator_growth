@@ -15,8 +15,9 @@ informational_columns:
   date_edited: "Date Edited"
   company: "Company"
   sector: "Sector"
-  discount_to_fair_value: "Historical Fair Value"
-  market_cap_billion: "Market Cap (Billion)"
+  current_price: "Current Price"  # Kolumna Z - cena aktualna w dolarach
+  historical_fair_value: "Historical Fair Value"  # Kolumna AA - Historical Fair Value w procentach (ale to są dolary)
+  market_cap_billion: "Market Cap (Billion)"  # Kolumna DB - miliardy dolarów
   # Możesz dodać więcej kolumn informacyjnych tutaj
   # current_price: "Current Price"
   # payout_ratio: "Payout Ratio"

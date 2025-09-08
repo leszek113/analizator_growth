@@ -2,18 +2,30 @@
 version:
   major: 1
   minor: 1
-  patch: 1
+  patch: 2
   build: 0
   
 # Informacje o wersji
 info:
   name: "Analizator Growth"
-  full_name: "Analizator Growth v1.1.1"
+  full_name: "Analizator Growth v1.1.2"
   description: "System analizy spółek giełdowych z selekcją i oceną"
   release_date: "2025-09-08"
   
 # Historia wersji
 changelog:
+  "1.1.2":
+    date: "2025-09-08"
+    changes:
+      - "Dodano nowe kolumny informacyjne: Current Price, Historical Fair Value, Market Cap"
+      - "Implementacja obliczania 'Discount to Fair Value' w procentach"
+      - "Poprawka formatowania Market Cap w miliardach dolarów (np. $15.2 B)"
+      - "Naprawa sortowania kolumn 'Sto 36,12,12 1M' i 'Sto 36,12,12 1W'"
+      - "Aktualizacja konfiguracji DataTable z nowymi indeksami kolumn"
+      - "Poprawka obliczania Historical Fair Value (60205.16% = $602.05)"
+      - "Dodano funkcję czyszczenia bazy danych przed nową analizą"
+      - "Ulepszona dokumentacja i instrukcje użytkowania"
+      
   "1.1.1":
     date: "2025-09-08"
     changes:
