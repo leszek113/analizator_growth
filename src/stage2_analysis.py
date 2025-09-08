@@ -17,6 +17,25 @@ from stock_selector import StockSelector
 from yahoo_finance_analyzer import YahooFinanceAnalyzer
 from database_manager import DatabaseManager
 
+def _get_ticker_column(df):
+    """
+    Znajduje kolumnę z tickerami w DataFrame
+    """
+    ticker_columns = ['Ticker', 'Ticker_3', 'ticker', 'TICKER']
+    for col in ticker_columns:
+        if col in df.columns:
+            return col
+    return None
+
+def _extract_tickers(df):
+    """
+    Wyciąga listę tickerów z DataFrame
+    """
+    ticker_col = _get_ticker_column(df)
+    if ticker_col:
+        return df[ticker_col].tolist()
+    return []
+
 def get_stage1_stocks():
     """
     Pobiera spółki z Etapu 1 (DK Rating xls)
@@ -38,11 +57,8 @@ def get_stage1_stocks():
         logger.info(f"Kolumny po selekcji: {list(selected_df.columns)}")
         
         # Wyciągnij listę tickerów
-        if 'Ticker' in selected_df.columns:
-            tickers = selected_df['Ticker'].tolist()
-        elif 'Ticker_3' in selected_df.columns:  # W przypadku duplikatów kolumn
-            tickers = selected_df['Ticker_3'].tolist()
-        else:
+        tickers = _extract_tickers(selected_df)
+        if not tickers:
             logger.error("Nie znaleziono kolumny z tickerami")
             return [], selected_df
         
@@ -54,6 +70,46 @@ def get_stage1_stocks():
     except Exception as e:
         logger.error(f"Błąd podczas Etapu 1: {e}")
         return [], pd.DataFrame()
+
+def _log_stage2_results(results_df):
+    """
+    Loguje wyniki analizy Etapu 2
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Wyniki analizy Etapu 2:")
+    logger.info(f"Przeanalizowano {len(results_df)} spółek")
+    
+    # Spółki z dobrymi warunkami Stochastic (dane informacyjne)
+    stage2_passed = results_df[results_df['stage2_passed'] == True]
+    logger.info(f"Etap 2: {len(stage2_passed)} spółek ma dobre warunki Stochastic")
+    
+    if not stage2_passed.empty:
+        logger.info("Spółki z dobrymi warunkami Stochastic:")
+        for _, row in stage2_passed.iterrows():
+            ticker = row['ticker']
+            stoch_1m = row['stochastic_1m']
+            stoch_1w = row['stochastic_1w']
+            condition_1m = "✅" if row['condition_1m'] else "❌"
+            condition_1w = "✅" if row['condition_1w'] else "❌"
+            
+            logger.info(f"  {ticker}: 1M={stoch_1m:.1f}% {condition_1m}, 1W={stoch_1w:.1f}% {condition_1w}")
+    
+    # Spółki z gorszymi warunkami Stochastic (dane informacyjne)
+    stage2_failed = results_df[results_df['stage2_passed'] == False]
+    if not stage2_failed.empty:
+        logger.info(f"Spółki z gorszymi warunkami Stochastic ({len(stage2_failed)}):")
+        for _, row in stage2_failed.iterrows():
+            ticker = row['ticker']
+            stoch_1m = row['stochastic_1m']
+            stoch_1w = row['stochastic_1w']
+            error = row['error']
+            
+            if error:
+                logger.warning(f"  {ticker}: BŁĄD - {error}")
+            else:
+                logger.info(f"  {ticker}: 1M={stoch_1m:.1f}%, 1W={stoch_1w:.1f}% (oba > 30%)")
 
 def analyze_stage2(stage1_stocks):
     """
@@ -76,38 +132,7 @@ def analyze_stage2(stage1_stocks):
         results_df = analyzer.analyze_stage2_stocks(stage1_stocks)
         
         # Wyświetl wyniki
-        logger.info(f"Wyniki analizy Etapu 2:")
-        logger.info(f"Przeanalizowano {len(results_df)} spółek")
-        
-        # Spółki z dobrymi warunkami Stochastic (dane informacyjne)
-        stage2_passed = results_df[results_df['stage2_passed'] == True]
-        logger.info(f"Etap 2: {len(stage2_passed)} spółek ma dobre warunki Stochastic")
-        
-        if not stage2_passed.empty:
-            logger.info("Spółki z dobrymi warunkami Stochastic:")
-            for _, row in stage2_passed.iterrows():
-                ticker = row['ticker']
-                stoch_1m = row['stochastic_1m']
-                stoch_1w = row['stochastic_1w']
-                condition_1m = "✅" if row['condition_1m'] else "❌"
-                condition_1w = "✅" if row['condition_1w'] else "❌"
-                
-                logger.info(f"  {ticker}: 1M={stoch_1m:.1f}% {condition_1m}, 1W={stoch_1w:.1f}% {condition_1w}")
-        
-        # Spółki z gorszymi warunkami Stochastic (dane informacyjne)
-        stage2_failed = results_df[results_df['stage2_passed'] == False]
-        if not stage2_failed.empty:
-            logger.info(f"Spółki z gorszymi warunkami Stochastic ({len(stage2_failed)}):")
-            for _, row in stage2_failed.iterrows():
-                ticker = row['ticker']
-                stoch_1m = row['stochastic_1m']
-                stoch_1w = row['stochastic_1w']
-                error = row['error']
-                
-                if error:
-                    logger.warning(f"  {ticker}: BŁĄD - {error}")
-                else:
-                    logger.info(f"  {ticker}: 1M={stoch_1m:.1f}%, 1W={stoch_1w:.1f}% (oba > 30%)")
+        _log_stage2_results(results_df)
         
         return results_df
         

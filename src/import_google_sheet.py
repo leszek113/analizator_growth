@@ -1,6 +1,7 @@
 import gspread
 import pandas as pd
 import yaml
+import os
 from oauth2client.service_account import ServiceAccountCredentials
 import logging
 
@@ -30,9 +31,9 @@ def import_google_sheet_data():
         
         # Ustawienia dostępu do Google Sheet
         SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        CREDS_PATH = 'secrets/credentials.json'
-        SHEET_NAME = '03_DK_Master_XLS_Source'
-        WORKSHEET_NAME = 'DK'
+        CREDS_PATH = os.getenv('GOOGLE_CREDENTIALS_PATH', 'secrets/credentials.json')
+        SHEET_NAME = os.getenv('GOOGLE_SHEET_NAME', '03_DK_Master_XLS_Source')
+        WORKSHEET_NAME = os.getenv('GOOGLE_WORKSHEET_NAME', 'DK')
         
         # Autoryzacja i połączenie z Google Sheet
         creds = ServiceAccountCredentials.from_json_keyfile_name(CREDS_PATH, SCOPE)

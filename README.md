@@ -1,6 +1,19 @@
-# Analizator Growth - v1.1.2 🎯
+# Analizator Growth - v1.2.0 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
+
+## 🆕 Co nowego w v1.2.0
+
+- **🔒 BEZPIECZEŃSTWO: Pełna walidacja danych wejściowych API** - ochrona przed atakami XSS i injection
+- **🔒 BEZPIECZEŃSTWO: Rate limiting dla endpointów API** - ochrona przed DDoS i nadużyciami
+- **🔒 BEZPIECZEŃSTWO: Usunięto hardcoded API keys** - dodano zmienne środowiskowe
+- **⚡ WYDAJNOŚĆ: System cache dla często używanych danych** - szybsze ładowanie wyników
+- **⚡ WYDAJNOŚĆ: Optymalizacja zapytań do bazy danych** - mniejsze obciążenie
+- **🔧 STABILNOŚĆ: Naprawiono niezgodności wersji pakietów** - spójne zależności
+- **🔧 STABILNOŚĆ: Wyeliminowano duplikację kodu** - czystszy, bardziej utrzymywalny kod
+- **🔧 STABILNOŚĆ: Lepsze error handling i logowanie** - bardziej niezawodna aplikacja
+- **📚 DOKUMENTACJA: Uzupełniono dokumentację API i konfiguracji** - łatwiejsze wdrożenie
+- **🚀 PRODUKCJA: Aplikacja gotowa do wdrożenia produkcyjnego** - pełne zabezpieczenia
 
 ## 🆕 Co nowego w v1.1.2
 
@@ -183,12 +196,14 @@ docker run -d --name analizator-growth-v1 -p 5002:5002 leszek113/analizator-grow
 analizator_growth/
 ├── app.py                 # Główna aplikacja Flask
 ├── src/
-│   ├── database_manager.py      # Zarządzanie bazą danych
+│   ├── database_manager.py      # Zarządzanie bazą danych + cache
 │   ├── import_google_sheet.py   # Import z Google Sheets
 │   ├── yahoo_finance_analyzer.py # Analiza Yahoo Finance
 │   ├── stage2_analysis.py       # Główna logika analizy
 │   ├── stock_selector.py        # Selekcja spółek
-│   └── auto_scheduler.py        # Automatyczne uruchamianie
+│   ├── auto_scheduler.py        # Automatyczne uruchamianie
+│   ├── cache_manager.py         # System cache
+│   └── rate_limiter.py          # Rate limiting API
 ├── config/
 │   ├── selection_rules.yaml     # Reguły selekcji
 │   ├── data_columns.yaml        # Kolumny danych
@@ -296,6 +311,26 @@ flag_snapshot:
 - Obliczanie cen i yieldów netto
 - **Etap 2 NIE eliminuje spółek z selekcji - to tylko dodatkowe informacje**
 
+## ⚡ Wydajność
+
+### System Cache
+- **Cache Manager**: Automatyczne cache'owanie często używanych danych
+- **TTL**: Konfigurowalny czas życia cache (domyślnie 5 minut)
+- **Auto-invalidation**: Automatyczne czyszczenie po zapisie nowych danych
+- **Memory-based**: Szybki dostęp do danych w pamięci
+
+### Optymalizacje
+- **Zapytania SQL**: Indeksy na kluczowych kolumnach
+- **Batch operations**: Masowe operacje na bazie danych
+- **Lazy loading**: Ładowanie danych tylko gdy potrzebne
+- **Connection pooling**: Optymalne zarządzanie połączeniami
+
+### Metryki wydajności
+- **Cache hit rate**: Procent trafień w cache
+- **Query time**: Czas wykonania zapytań
+- **Memory usage**: Zużycie pamięci przez cache
+- **Response time**: Czas odpowiedzi API
+
 ## 🚀 Funkcje zaawansowane
 
 ### Stochastic Oscillator (Etap 2 - dane informacyjne)
@@ -333,6 +368,18 @@ flag_snapshot:
 
 ## 🔐 Bezpieczeństwo
 
+### Walidacja danych wejściowych
+- **Tickery**: Tylko litery, cyfry i kropki (regex: `^[A-Za-z0-9.]+$`)
+- **Notatki**: Max 1000 znaków, ochrona przed XSS
+- **Flagi**: Walidacja kolorów i długości notatek
+- **Daty**: Format YYYY-MM-DD z walidacją
+
+### Rate Limiting
+- **API Notes**: 100 żądań/godzinę
+- **API Flags**: 50 żądań/godzinę  
+- **API General**: 200 żądań/godzinę
+- **Sliding window**: Automatyczne czyszczenie starych żądań
+
 ### API Key
 Aplikacja używa API Key do autoryzacji chronionych endpointów. Ustaw zmienną środowiskową:
 ```bash
@@ -345,6 +392,20 @@ Wszystkie endpointy z `POST` metodami wymagają nagłówka:
 X-API-Key: your_secret_api_key_here
 ```
 
+### Zmienne środowiskowe
+```bash
+# API Security
+API_KEY=your_secret_api_key_here
+
+# Google Sheets
+GOOGLE_CREDENTIALS_PATH=secrets/credentials.json
+GOOGLE_SHEET_NAME=03_DK_Master_XLS_Source
+GOOGLE_WORKSHEET_NAME=DK
+
+# Yahoo Finance (opcjonalne)
+YAHOO_FINANCE_API_KEY=your_yahoo_api_key
+```
+
 ## 🌐 API Endpointy
 
 ### Automatyczne uruchamianie
@@ -354,15 +415,15 @@ X-API-Key: your_secret_api_key_here
 - `POST /api/auto-schedule/configure` - Konfiguracja (chroniony, X-API-Key)
 - `POST /api/auto-schedule/run-now` - Uruchom teraz (chroniony, X-API-Key)
 
-### Notatki
+### Notatki (z walidacją i rate limiting)
 - `GET /api/notes/<ticker>` - Pobierz notatki spółki
-- `POST /api/notes/<ticker>` - Dodaj notatkę
+- `POST /api/notes/<ticker>` - Dodaj notatkę (rate limit: 100/h)
 - `PUT /api/notes/<ticker>/<number>` - Edytuj notatkę
 - `DELETE /api/notes/<ticker>/<number>` - Usuń notatkę
 
-### Flagi
+### Flagi (z walidacją i rate limiting)
 - `GET /api/flags/<ticker>` - Pobierz flagę spółki
-- `POST /api/flags/<ticker>` - Ustaw flagę spółki
+- `POST /api/flags/<ticker>` - Ustaw flagę spółki (rate limit: 50/h)
 - `GET /api/flags/history/<ticker>` - Historia flag spółki
 - `GET /api/flags/report` - Raport wszystkich flag
 - `GET /api/flag-snapshot/status` - Status zapisu flag (publiczny)
@@ -458,4 +519,4 @@ W przypadku problemów:
 
 ---
 
-**Analizator Growth v1.1.1** - Automatyczna selekcja spółek dywidendowych 🎯 
+**Analizator Growth v1.2.0** - Automatyczna selekcja spółek dywidendowych 🎯 

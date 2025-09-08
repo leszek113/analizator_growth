@@ -1,19 +1,33 @@
 # Konfiguracja wersji aplikacji
 version:
   major: 1
-  minor: 1
-  patch: 2
+  minor: 2
+  patch: 0
   build: 0
   
 # Informacje o wersji
 info:
   name: "Analizator Growth"
-  full_name: "Analizator Growth v1.1.2"
+  full_name: "Analizator Growth v1.2.0"
   description: "System analizy spółek giełdowych z selekcją i oceną"
-  release_date: "2025-09-08"
+  release_date: "2025-01-15"
   
 # Historia wersji
 changelog:
+  "1.2.0":
+    date: "2025-01-15"
+    changes:
+      - "🔒 BEZPIECZEŃSTWO: Dodano pełną walidację danych wejściowych API"
+      - "🔒 BEZPIECZEŃSTWO: Zaimplementowano rate limiting dla endpointów API"
+      - "🔒 BEZPIECZEŃSTWO: Usunięto hardcoded API keys - dodano zmienne środowiskowe"
+      - "⚡ WYDAJNOŚĆ: Zaimplementowano system cache dla często używanych danych"
+      - "⚡ WYDAJNOŚĆ: Dodano optymalizację zapytań do bazy danych"
+      - "🔧 STABILNOŚĆ: Naprawiono niezgodności wersji pakietów w requirements.txt"
+      - "🔧 STABILNOŚĆ: Wyeliminowano duplikację kodu w modułach analizy"
+      - "🔧 STABILNOŚĆ: Dodano lepsze error handling i logowanie"
+      - "📚 DOKUMENTACJA: Uzupełniono dokumentację API i konfiguracji"
+      - "🚀 PRODUKCJA: Aplikacja gotowa do wdrożenia produkcyjnego"
+      
   "1.1.2":
     date: "2025-09-08"
     changes:

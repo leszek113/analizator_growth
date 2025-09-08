@@ -8,6 +8,7 @@ import sys
 import os
 import pandas as pd
 import yaml
+import re
 from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -15,6 +16,7 @@ from src.database_manager import DatabaseManager
 from src.stage2_analysis import main as run_analysis
 from src.auto_scheduler import get_auto_scheduler, init_auto_scheduler
 from src.config_loader import get_api_key, is_api_auth_enabled, get_version_string, get_full_version_string, get_app_name, get_app_description
+from src.rate_limiter import rate_limit
 import logging
 
 # Konfiguracja logowania
@@ -26,6 +28,79 @@ app.secret_key = 'analizator_growth_secret_key'
 
 # Inicjalizacja menedżera bazy danych
 db_manager = DatabaseManager()
+
+# ===== FUNKCJE WALIDACYJNE =====
+
+def validate_ticker(ticker):
+    """
+    Waliduje format tickera
+    """
+    if not ticker or not isinstance(ticker, str):
+        return False
+    
+    # Ticker może zawierać tylko litery, cyfry i kropki
+    pattern = r'^[A-Za-z0-9.]+$'
+    return bool(re.match(pattern, ticker.strip()))
+
+def validate_note_content(content):
+    """
+    Waliduje treść notatki
+    """
+    if not content or not isinstance(content, str):
+        return False
+    
+    # Sprawdź długość (max 1000 znaków)
+    if len(content.strip()) > 1000:
+        return False
+    
+    # Sprawdź czy nie zawiera niebezpiecznych znaków
+    dangerous_patterns = ['<script', 'javascript:', 'data:', 'vbscript:']
+    content_lower = content.lower()
+    for pattern in dangerous_patterns:
+        if pattern in content_lower:
+            return False
+    
+    return True
+
+def validate_flag_color(color):
+    """
+    Waliduje kolor flagi
+    """
+    valid_colors = ['red', 'green', 'yellow', 'blue', 'none']
+    return color in valid_colors
+
+def validate_date_format(date_str):
+    """
+    Waliduje format daty (YYYY-MM-DD)
+    """
+    if not date_str or not isinstance(date_str, str):
+        return False
+    
+    pattern = r'^\d{4}-\d{2}-\d{2}$'
+    if not re.match(pattern, date_str):
+        return False
+    
+    try:
+        datetime.strptime(date_str, '%Y-%m-%d')
+        return True
+    except ValueError:
+        return False
+
+def validate_api_request():
+    """
+    Waliduje żądanie API (sprawdza autoryzację)
+    """
+    if not is_api_auth_enabled():
+        return True, None
+    
+    api_key = request.headers.get('X-API-Key')
+    if not api_key:
+        return False, "Brak klucza API"
+    
+    if api_key != get_api_key():
+        return False, "Nieprawidłowy klucz API"
+    
+    return True, None
 
 @app.context_processor
 def inject_globals():
@@ -578,15 +653,31 @@ def get_company_note(ticker, note_number):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/notes/<ticker>', methods=['POST'])
+@rate_limit('api_notes')
 def add_company_note(ticker):
     """Dodaje nową notatkę"""
     try:
+        # Waliduj ticker
+        if not validate_ticker(ticker):
+            return jsonify({'success': False, 'error': 'Nieprawidłowy format tickera'}), 400
+        
         data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Brak danych'}), 400
+        
         title = data.get('title', '').strip()
         content = data.get('content', '').strip()
         
         if not content:
             return jsonify({'success': False, 'error': 'Treść notatki jest wymagana'}), 400
+        
+        # Waliduj treść notatki
+        if not validate_note_content(content):
+            return jsonify({'success': False, 'error': 'Nieprawidłowa treść notatki'}), 400
+        
+        # Waliduj tytuł (max 100 znaków)
+        if len(title) > 100:
+            return jsonify({'success': False, 'error': 'Tytuł zbyt długi (max 100 znaków)'}), 400
         
         success = db_manager.add_company_note(ticker, title, content)
         if success:
@@ -805,17 +896,30 @@ def get_company_flag(ticker):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/flags/<ticker>', methods=['POST'])
+@rate_limit('api_flags')
 def set_company_flag(ticker):
     """
     Ustawia flagę dla spółki
     """
     try:
-        data = request.get_json()
-        flag_color = data.get('flag_color')
-        flag_notes = data.get('flag_notes', '')[:40]  # Max 40 znaków
+        # Waliduj ticker
+        if not validate_ticker(ticker):
+            return jsonify({'success': False, 'message': 'Nieprawidłowy format tickera'}), 400
         
-        if flag_color not in ['red', 'green', 'yellow', 'blue', 'none']:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'Brak danych'}), 400
+        
+        flag_color = data.get('flag_color')
+        flag_notes = data.get('flag_notes', '').strip()[:40]  # Max 40 znaków
+        
+        # Waliduj kolor flagi
+        if not validate_flag_color(flag_color):
             return jsonify({'success': False, 'message': 'Nieprawidłowy kolor flagi'}), 400
+        
+        # Waliduj notatki (sprawdź czy nie zawierają niebezpiecznych znaków)
+        if flag_notes and not validate_note_content(flag_notes):
+            return jsonify({'success': False, 'message': 'Nieprawidłowa treść notatek'}), 400
         
         success = db_manager.set_company_flag(ticker.upper(), flag_color, flag_notes)
         if success:

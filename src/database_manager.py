@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from typing import List, Dict, Optional
 import logging
+from .cache_manager import cached, invalidate_cache
 
 # Konfiguracja logowania
 logging.basicConfig(level=logging.INFO)
@@ -224,6 +225,11 @@ class DatabaseManager:
                 conn.commit()
                 
                 logger.info(f"Utworzono uruchomienie analizy ID: {run_id} (selekcja: {current_selection_version}, info: {current_info_version})")
+                
+                # Inwaliduj cache
+                invalidate_cache('latest_results')
+                invalidate_cache('analysis_history')
+                
                 return run_id
                 
         except Exception as e:
@@ -675,6 +681,7 @@ class DatabaseManager:
             logger.error(f"Błąd podczas pobierania informacji o dzisiejszej selekcji: {e}")
             return {}
     
+    @cached(ttl=300, key_prefix='latest_results')
     def get_latest_results(self) -> pd.DataFrame:
         """
         Pobiera najnowsze wyniki analizy z danymi selekcji i informacjami o Etapie 2
@@ -816,6 +823,7 @@ class DatabaseManager:
             logger.error(f"Błąd podczas pobierania historii flag: {e}")
             return []
     
+    @cached(ttl=600, key_prefix='analysis_history')
     def get_analysis_history(self, limit: int = 10) -> pd.DataFrame:
         """
         Pobiera historię uruchomień analizy
