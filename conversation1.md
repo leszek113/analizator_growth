@@ -1,4 +1,4 @@
-# ANALIZATOR RYNKU - DOKUMENTACJA KONWERSACJI #1
+# ANALIZATOR GROWTH - DOKUMENTACJA KONWERSACJI #1
 
 ## CEL PROJEKTU
 Aplikacja do automatycznej selekcji spółek/ETF-ów do ewentualnej inwestycji na podstawie danych z różnych źródeł.
@@ -23,7 +23,7 @@ Aplikacja do automatycznej selekcji spółek/ETF-ów do ewentualnej inwestycji n
 ## ŚRODOWISKO
 - **Rozwój:** macOS
 - **Produkcja:** Linux Ubuntu w chmurze
-- **Repozytorium:** GitHub (https://github.com/leszek113/analiza_rynku)
+- **Repozytorium:** GitHub (https://github.com/leszek113/analizator_growth)
 
 ## ŹRÓDŁA DANYCH
 
@@ -83,7 +83,8 @@ analizator_growth/
 ├── docs/                         # Dokumentacja
 ├── tests/                        # Testy - do implementacji
 ├── venv/                         # Wirtualne środowisko Python
-├── market_analyzer.db            # Baza danych SQLite
+├── data/
+│   └── analizator_growth.db      # Baza danych SQLite
 ├── requirements.txt              # Zależności Python
 └── .gitignore                    # Ignoruje katalog secrets/ i venv/
 ```
@@ -388,6 +389,6 @@ python3 src/migrate_to_versioned_schema.py  # Migracja (jednorazowo)
 
 ---
 *Dokumentacja utworzona: 2024*
-*Ostatnia aktualizacja: Lipiec 2025*
-*Projekt: Analizator Rynku - Selekcja Spółek*
+*Ostatnia aktualizacja: Wrzesień 2025*
+*Projekt: Analizator Growth - Selekcja Spółek*
 *Status: Projekt z wersjonowaniem - gotowy do implementacji interfejsu webowego* 

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   analizator-growth:
     build: .
-    container_name: analizator-growth-v1.1.0
+    container_name: analizator-growth-v1.1.1
     ports:
       - "5002:5002"
     volumes:
@@ -18,9 +18,9 @@ services:
     environment:
       - FLASK_ENV=production
       - PYTHONPATH=/app
-      - APP_VERSION=v1.1.0
+      - APP_VERSION=v1.1.1
       - APP_BUILD=0
-      - APP_RELEASE_DATE=2025-09-07
+      - APP_RELEASE_DATE=2025-09-08
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/"]

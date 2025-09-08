@@ -99,7 +99,7 @@ def show_database_structure():
     try:
         import sqlite3
         
-        with sqlite3.connect("market_analyzer.db") as conn:
+        with sqlite3.connect("data/analizator_growth.db") as conn:
             cursor = conn.cursor()
             
             # Pokaż wszystkie tabele
@@ -135,7 +135,7 @@ def main():
     """
     Główna funkcja
     """
-    print("=== TEST BAZY DANYCH ANALIZATORA RYNKU ===")
+    print("=== TEST BAZY DANYCH ANALIZATORA GROWTH ===")
     
     # Pokaż strukturę bazy danych
     show_database_structure()
