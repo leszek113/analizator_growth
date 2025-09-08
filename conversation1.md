@@ -64,7 +64,7 @@ Aplikacja do automatycznej selekcji spółek/ETF-ów do ewentualnej inwestycji n
 
 ## STRUKTURA PROJEKTU (ZAKTUALIZOWANA - LIPIEC 2025)
 ```
-analizator_rynku/
+analizator_growth/
 ├── src/
 │   ├── stage2_analysis.py        # Główny skrypt analizy dwuetapowej
 │   ├── database_manager.py       # Menedżer bazy danych SQLite

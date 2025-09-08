@@ -125,7 +125,7 @@
                                     <td>{{ company.selection_data_parsed.get('country', 'N/A') }}</td>
                                     <td>
                                         {% set qrating = company.selection_data_parsed.get('quality_rating', 'N/A') %}
-                                        {% if qrating != 'N/A' and '%' in qrating %}
+                                        {% if qrating != 'N/A' and qrating is string and '%' in qrating %}
                                             {{ (qrating|replace('%', '')|float / 100)|int }}
                                         {% else %}
                                             {{ qrating }}
@@ -148,7 +148,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if company.stochastic_1m %}
+                                        {% if company.stochastic_1m != 'N/A' %}
                                             <span class="badge {% if company.stochastic_1m < 30 %}bg-success{% else %}bg-warning{% endif %}">
                                                 {{ "%.1f"|format(company.stochastic_1m) }}%
                                             </span>
@@ -157,7 +157,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if company.stochastic_1w %}
+                                        {% if company.stochastic_1w != 'N/A' %}
                                             <span class="badge {% if company.stochastic_1w < 30 %}bg-success{% else %}bg-warning{% endif %}">
                                                 {{ "%.1f"|format(company.stochastic_1w) }}%
                                             </span>

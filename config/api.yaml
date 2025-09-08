@@ -12,7 +12,7 @@ security:
 # Konfiguracja dla różnych środowisk
 environments:
   development:
-    api_key: "dev_key_change_me"
+    api_key: "CHANGE_ME_DEV_API_KEY_2025"
     debug: true
     
   production:
@@ -20,5 +20,5 @@ environments:
     debug: false
     
   testing:
-    api_key: "test_key_123"
+    api_key: "CHANGE_ME_TEST_API_KEY_2025"
     debug: true

@@ -30,10 +30,12 @@ def get_stage1_stocks():
         # Import danych z Google Sheet
         df = import_google_sheet_data()
         logger.info(f"Pobrano {len(df)} spółek z Google Sheet")
+        logger.info(f"Kolumny w DataFrame: {list(df.columns)}")
         
         # Zastosuj reguły selekcji
         selector = StockSelector()
         selected_df = selector.select_stocks(df)
+        logger.info(f"Kolumny po selekcji: {list(selected_df.columns)}")
         
         # Wyciągnij listę tickerów
         if 'Ticker' in selected_df.columns:

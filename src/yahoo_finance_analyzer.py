@@ -206,22 +206,29 @@ class YahooFinanceAnalyzer:
         """
         try:
             result = {}
+            min_required_days = 60  # 36 + 12 + 12 = minimum dla Stochastic
             
             # Pobierz dane dla 5 lat (więcej danych dla obliczeń)
             data_5y = self.get_stock_data(ticker, "5y")
             if data_5y is not None and not data_5y.empty:
-                # Użyj standardowych parametrów 36,12,12 dla miesięcznych
-                k_1m, d_1m = self.calculate_stochastic_oscillator(data_5y, k_period=36, d_period=12, smoothing=12)
-                if not d_1m.empty:
-                    result['1M'] = d_1m.iloc[-1]  # Ostatnia wartość %D
+                if len(data_5y) >= min_required_days:
+                    # Użyj standardowych parametrów 36,12,12 dla miesięcznych
+                    k_1m, d_1m = self.calculate_stochastic_oscillator(data_5y, k_period=36, d_period=12, smoothing=12)
+                    if not d_1m.empty:
+                        result['1M'] = d_1m.iloc[-1]  # Ostatnia wartość %D
+                else:
+                    logger.warning(f"{ticker}: Za mało danych dla 1M Stochastic ({len(data_5y)} < {min_required_days} dni)")
             
             # Pobierz dane dla 2 lat (dla tygodniowych obliczeń)
             data_2y = self.get_stock_data(ticker, "2y")
             if data_2y is not None and not data_2y.empty:
-                # Użyj standardowych parametrów 36,12,12 dla tygodniowych
-                k_1w, d_1w = self.calculate_stochastic_oscillator(data_2y, k_period=36, d_period=12, smoothing=12)
-                if not d_1w.empty:
-                    result['1W'] = d_1w.iloc[-1]  # Ostatnia wartość %D
+                if len(data_2y) >= min_required_days:
+                    # Użyj standardowych parametrów 36,12,12 dla tygodniowych
+                    k_1w, d_1w = self.calculate_stochastic_oscillator(data_2y, k_period=36, d_period=12, smoothing=12)
+                    if not d_1w.empty:
+                        result['1W'] = d_1w.iloc[-1]  # Ostatnia wartość %D
+                else:
+                    logger.warning(f"{ticker}: Za mało danych dla 1W Stochastic ({len(data_2y)} < {min_required_days} dni)")
             
             return result if result else None
             

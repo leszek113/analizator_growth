@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     """
-    Klasa do zarządzania bazą danych SQLite dla analizatora rynku
+    Klasa do zarządzania bazą danych SQLite dla Analizatora Growth
     """
     
     def __init__(self, db_path: str = "data/analizator_growth.db"):

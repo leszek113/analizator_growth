@@ -155,10 +155,10 @@ docker-compose ps
 ### Backup bazy danych
 ```bash
 # Backup
-cp data/analizator_rynku.db backup_$(date +%Y%m%d_%H%M%S).db
+cp data/analizator_growth.db backup_$(date +%Y%m%d_%H%M%S).db
 
 # Restore
-cp backup_20250907_143000.db data/analizator_rynku.db
+cp backup_20250907_143000.db data/analizator_growth.db
 ```
 
 ## 🚨 Rozwiązywanie problemów

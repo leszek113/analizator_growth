@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Główna aplikacja Flask dla Analizatora Rynku
+Główna aplikacja Flask dla Analizatora Growth
 """
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = 'analizator_rynku_secret_key'
+app.secret_key = 'analizator_growth_secret_key'
 
 # Inicjalizacja menedżera bazy danych
 db_manager = DatabaseManager()
@@ -166,8 +166,8 @@ def results():
                 'yield_netto': row.get('yield_netto'),
                 'current_price': row.get('current_price'),
                 'price_for_5_percent_yield': row.get('price_for_5_percent_yield'),
-                'stochastic_1m': row.get('stochastic_1m'),
-                'stochastic_1w': row.get('stochastic_1w'),
+                'stochastic_1m': row.get('stochastic_1m') if row.get('stochastic_1m') is not None else 'N/A',
+                'stochastic_1w': row.get('stochastic_1w') if row.get('stochastic_1w') is not None else 'N/A',
                 'stage2_passed': row.get('stage2_passed')
             }
             companies_list.append(company_data)

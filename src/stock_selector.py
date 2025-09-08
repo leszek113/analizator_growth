@@ -47,7 +47,20 @@ class StockSelector:
         
         if operator == 'in':
             values = rule_config.get('values', [])
+            print(f"  Oryginalne wartości: {values}")
+            print(f"  Typ kolumny: {df[column].dtype}")
+            print(f"  Przykładowe wartości w kolumnie: {df[column].head().tolist()}")
+            
+            # Konwertuj wartości na float jeśli kolumna jest numeryczna
+            if df[column].dtype in ['float64', 'int64'] or all(isinstance(v, (int, float)) for v in df[column].dropna()):
+                try:
+                    values = [float(v) for v in values]
+                    print(f"  Skonwertowane wartości: {values}")
+                except (ValueError, TypeError) as e:
+                    print(f"  Błąd konwersji: {e}")
+                    pass
             mask = df[column].isin(values)
+            print(f"  Liczba dopasowań: {mask.sum()}")
         elif operator == '>=':
             value = rule_config.get('value')
             # Specjalna obsługa dla porównań numerycznych w stringach
@@ -113,8 +126,21 @@ class StockSelector:
             print(f"  Kolumna: {rule_config.get('column')}")
             print(f"  Operator: {rule_config.get('operator')}")
             
+            # Debug - pokaż unikalne wartości w kolumnie przed filtrowaniem
+            if rule_config.get('column') in filtered_df.columns:
+                unique_values = filtered_df[rule_config.get('column')].value_counts().head(10)
+                print(f"  Unikalne wartości w kolumnie: {dict(unique_values)}")
+                print(f"  Szukane wartości: {rule_config.get('values', 'N/A')}")
+            else:
+                print(f"  ⚠️  KOLUMNA '{rule_config.get('column')}' NIE ISTNIEJE!")
+                print(f"  Dostępne kolumny: {list(filtered_df.columns)}")
+            
             filtered_df = self.apply_rule(filtered_df, rule_name, rule_config)
             print(f"  Spółek po tej regule: {len(filtered_df)}")
+            
+            if len(filtered_df) == 0:
+                print(f"  ⚠️  UWAGA: Reguła {rule_name} wyeliminowała wszystkie spółki!")
+                break
         
         print(f"\nSelekcja zakończona. Końcowa liczba spółek: {len(filtered_df)}")
         return filtered_df

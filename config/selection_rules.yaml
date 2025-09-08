@@ -1,36 +1,23 @@
-# Reguły selekcji spółek - Etap 1
-# Te reguły są stosowane do danych z Google Sheet
+# Reguły selekcji spółek GROWTH - Etap 1 (GŁÓWNA SELEKCJA)
+# Bardzo restrykcyjne warunki dla spółek typu growth
+# Wszystkie spółki które przejdą Etap 1 trafiają do finalnej listy
 
 selection_rules:
-  country:
-    column: "Country"
-    operator: "in"
-    values: ["US", "UK", "Canada"]
-  
   quality_rating:
     column: "Quality Rating (out Of 13)"
     operator: "in"
     values: ["13.00", "12.00"]
-  
-  yield:
-    column: "Yield"
-    operator: ">="
-    value: "4%"
-  
-  dividend_growth_streak:
-    column: "Dividend Growth Streak (Years)"
-    operator: ">="
-    value: "15.00"
+    description: "Tylko spółki z najwyższymi ocenami jakości (12 lub 13 na 13)"
   
   sp_credit_rating:
     column: "S&P Credit Rating"
     operator: "complex"
     allowed_patterns: ["A*", "BBB+", "BBB"]
     excluded_values: ["BBB-", "NA"]
+    description: "Ratingi A (A+, A, A-) oraz BBB+ i BBB. Wykluczone BBB- i NA"
   
   dk_rating:
     column: "DK Rating"
     operator: "in"
-    values: ["Potential Good Buy or Better", "Potential Reasonable Buy", "Hold"]
-  
- 
+    values: ["Potential Good Buy or Better"]
+    description: "Tylko spółki z pozytywną oceną DK - Potential Good Buy or Better"

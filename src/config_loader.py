@@ -88,17 +88,17 @@ class ConfigLoader:
             
             # Sprawdź konfigurację
             api_config = self.config.get('api', {})
-            api_key = api_config.get('key', 'default_key_change_me')
+            api_key = api_config.get('key', 'CHANGE_ME_SECURE_API_KEY_2025')
             
             # Jeśli to nadal template, użyj domyślnego
             if api_key.startswith('{{ env.'):
-                api_key = 'default_key_change_me'
+                api_key = 'CHANGE_ME_SECURE_API_KEY_2025'
             
             return api_key
             
         except Exception as e:
             logger.error(f"Błąd podczas pobierania API key: {e}")
-            return 'default_key_change_me'
+            return 'CHANGE_ME_SECURE_API_KEY_2025'
     
     def get_config(self, section: str) -> Dict[str, Any]:
         """Pobiera konfigurację dla danej sekcji"""
