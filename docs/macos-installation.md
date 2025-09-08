@@ -1,10 +1,10 @@
-# Instalacja i zarządzanie na macOS 🍎
+# Instalacja i zarządzanie Analizatora Growth na macOS 🍎
 
 ## 🚀 Uruchamianie aplikacji w tle (launchd)
 
 ### Krok 1: Przygotowanie pliku konfiguracyjnego
 
-Plik `com.leszek.analizator-rynku.plist` jest już przygotowany w katalogu projektu z następującymi ustawieniami:
+Plik `com.leszek.analizator-growth.plist` jest już przygotowany w katalogu projektu z następującymi ustawieniami:
 
 - ✅ **Ręczne uruchamianie** - `RunAtLoad: false`
 - ✅ **Warunkowe restartowanie** - `KeepAlive` z warunkami sieciowymi
@@ -13,7 +13,7 @@ Plik `com.leszek.analizator-rynku.plist` jest już przygotowany w katalogu proje
 
 **Ważne:** Konfiguracja `KeepAlive` została zmieniona z `true` na warunkową, żeby umożliwić niezawodne zatrzymanie aplikacji przez `launchctl stop`.
 
-Utwórz plik `com.leszek.analizator-rynku.plist` w katalogu projektu:
+Utwórz plik `com.leszek.analizator-growth.plist` w katalogu projektu:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -21,16 +21,16 @@ Utwórz plik `com.leszek.analizator-rynku.plist` w katalogu projektu:
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.leszek.analizator-rynku</string>
+    <string>com.leszek.analizator-growth</string>
     
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_rynku/venv/bin/python</string>
-        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_rynku/app.py</string>
+        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth/venv/bin/python</string>
+        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth/app.py</string>
     </array>
     
     <key>WorkingDirectory</key>
-    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_rynku</string>
+    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth</string>
     
     <key>RunAtLoad</key>
     <false/>
@@ -50,17 +50,17 @@ Utwórz plik `com.leszek.analizator-rynku.plist` w katalogu projektu:
     <integer>10</integer>
     
     <key>StandardOutPath</key>
-    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_rynku/logs/analizator-rynku.log</string>
+    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth/logs/analizator-growth.log</string>
     
     <key>StandardErrorPath</key>
-    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_rynku/logs/analizator-rynku-error.log</string>
+    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth/logs/analizator-growth-error.log</string>
     
     <key>EnvironmentVariables</key>
     <dict>
         <key>FLASK_ENV</key>
         <string>production</string>
         <key>PYTHONPATH</key>
-        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_rynku</string>
+        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth</string>
     </dict>
 </dict>
 </plist>
@@ -70,10 +70,10 @@ Utwórz plik `com.leszek.analizator-rynku.plist` w katalogu projektu:
 
 ```bash
 # Skopiuj plik do katalogu LaunchAgents
-cp com.leszek.analizator-rynku.plist ~/Library/LaunchAgents/
+cp com.leszek.analizator-growth.plist ~/Library/LaunchAgents/
 
 # Załaduj usługę (nie uruchamia automatycznie)
-launchctl load ~/Library/LaunchAgents/com.leszek.analizator-rynku.plist
+launchctl load ~/Library/LaunchAgents/com.leszek.analizator-growth.plist
 ```
 
 ## 🎮 Zarządzanie aplikacją
@@ -106,33 +106,33 @@ Dla niezawodnego zarządzania aplikacją użyj skryptu `scripts/manage-app.sh`:
 
 ```bash
 # Uruchom usługę
-launchctl start com.leszek.analizator-rynku
+launchctl start com.leszek.analizator-growth
 
 # Zatrzymaj usługę
-launchctl stop com.leszek.analizator-rynku
+launchctl stop com.leszek.analizator-growth
 
 # Sprawdź status
-launchctl list | grep analizator-rynku
+launchctl list | grep analizator-growth
 
 # Usuń usługę (wyładuj)
-launchctl unload ~/Library/LaunchAgents/com.leszek.analizator-rynku.plist
+launchctl unload ~/Library/LaunchAgents/com.leszek.analizator-growth.plist
 ```
 
 ## 📊 Logi i monitoring
 
 ### Sprawdzenie logów aplikacji
 ```bash
-tail -f logs/analizator-rynku.log
+tail -f logs/analizator-growth.log
 ```
 
 ### Sprawdzenie logów błędów
 ```bash
-tail -f logs/analizator-rynku-error.log
+tail -f logs/analizator-growth-error.log
 ```
 
 ### Sprawdzenie czy aplikacja działa
 ```bash
-curl -f http://localhost:5001/ || echo "Aplikacja nie odpowiada"
+curl -f http://localhost:5002/ || echo "Aplikacja nie odpowiada"
 ```
 
 ## 🔧 Konfiguracja
@@ -142,28 +142,28 @@ curl -f http://localhost:5001/ || echo "Aplikacja nie odpowiada"
 - `RunAtLoad: false` - aplikacja NIE uruchamia się automatycznie przy logowaniu
 
 ### Logi
-- Logi aplikacji: `logs/analizator-rynku.log`
-- Logi błędów: `logs/analizator-rynku-error.log`
+- Logi aplikacji: `logs/analizator-growth.log`
+- Logi błędów: `logs/analizator-growth-error.log`
 
 ## 🚨 Rozwiązywanie problemów
 
 ### Aplikacja nie uruchamia się
 ```bash
 # Sprawdź logi błędów
-tail -20 logs/analizator-rynku-error.log
+tail -20 logs/analizator-growth-error.log
 
 # Sprawdź status usługi
-launchctl list | grep analizator-rynku
+launchctl list | grep analizator-growth
 
 # Restart usługi
-launchctl stop com.leszek.analizator-rynku
-launchctl start com.leszek.analizator-rynku
+launchctl stop com.leszek.analizator-growth
+launchctl start com.leszek.analizator-growth
 ```
 
-### Port 5001 zajęty
+### Port 5002 zajęty
 ```bash
-# Sprawdź co używa portu 5001
-lsof -i :5001
+# Sprawdź co używa portu 5002
+lsof -i :5002
 
 # Zatrzymaj proces używający port
 kill -9 <PID>
@@ -174,5 +174,5 @@ kill -9 <PID>
 - Aplikacja uruchamia się **ręcznie** przez `launchctl start`
 - Automatyczne restartowanie przy awarii jest **włączone**
 - Logi są zapisywane do plików w katalogu `logs/`
-- Aplikacja działa na porcie **5001**
-- Dostęp przez przeglądarkę: `http://localhost:5001` 
+- Aplikacja działa na porcie **5002**
+- Dostęp przez przeglądarkę: `http://localhost:5002` 

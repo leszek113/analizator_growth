@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Skrypt do zarządzania aplikacją Analizator Rynku na macOS
+# Skrypt do zarządzania aplikacją Analizator Growth na macOS
 # Użycie: ./scripts/manage-app.sh [start|stop|restart|status]
 
-APP_NAME="com.leszek.analizator-rynku"
-APP_PORT=5001
-PROJECT_DIR="/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_rynku"
+APP_NAME="com.leszek.analizator-growth"
+APP_PORT=5002
+PROJECT_DIR="/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth"
 
 # Kolory dla output
 RED='\033[0;31m'
@@ -52,7 +52,7 @@ force_stop() {
 
 # Funkcja sprawdzenia statusu
 status() {
-    echo -e "${YELLOW}=== Status aplikacji Analizator Rynku ===${NC}"
+    echo -e "${YELLOW}=== Status aplikacji Analizator Growth ===${NC}"
     
     # Sprawdź status usługi launchd
     echo -e "\n${YELLOW}Status usługi launchd:${NC}"

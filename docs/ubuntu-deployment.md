@@ -1,11 +1,11 @@
-# 🐳 Deployment na Ubuntu - v1.1.0
+# 🐳 Deployment Analizatora Growth na Ubuntu - v1.1.0
 
 ## 📋 Wymagania
 
 - Ubuntu 20.04+ lub 22.04+
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Port 5001 dostępny
+- Port 5002 dostępny
 
 ## 🚀 Instalacja Docker (jeśli nie ma)
 
@@ -32,17 +32,17 @@ newgrp docker
 ### Krok 1: Pobranie nowej wersji
 ```bash
 # Pobierz najnowszą wersję
-docker pull leszek113/analizator-rynku:v1.1.0
+docker pull leszek113/analizator-growth:v1.1.0
 
 # Lub pobierz latest
-docker pull leszek113/analizator-rynku:latest
+docker pull leszek113/analizator-growth:latest
 ```
 
 ### Krok 2: Przygotowanie katalogów
 ```bash
 # Utwórz katalog projektu
-mkdir -p ~/analizator-rynku
-cd ~/analizator-rynku
+mkdir -p ~/analizator-growth
+cd ~/analizator-growth
 
 # Utwórz katalogi dla danych
 mkdir -p data logs secrets config
@@ -53,11 +53,11 @@ mkdir -p data logs secrets config
 version: '3.8'
 
 services:
-  analizator-rynku:
-    image: leszek113/analizator-rynku:v1.1.0
-    container_name: analizator-rynku-v1.1.0
+  analizator-growth:
+    image: leszek113/analizator-growth:v1.1.0
+    container_name: analizator-growth-v1.1.0
     ports:
-      - "5001:5001"
+      - "5002:5002"
     volumes:
       # Persystencja bazy danych
       - ./data:/app/data
@@ -75,7 +75,7 @@ services:
       - APP_RELEASE_DATE=2025-09-07
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5002/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -106,7 +106,7 @@ docker-compose logs -f
 docker-compose down
 
 # Pobierz nową wersję
-docker pull leszek113/analizator-rynku:v1.1.0
+docker pull leszek113/analizator-growth:v1.1.0
 
 # Uruchom ponownie
 docker-compose up -d
@@ -115,10 +115,10 @@ docker-compose up -d
 ### Sprawdzenie aktualizacji
 ```bash
 # Sprawdź czy aplikacja działa
-curl http://localhost:5001/
+curl http://localhost:5002/
 
 # Sprawdź wersję w UI
-# Otwórz http://localhost:5001 w przeglądarce
+# Otwórz http://localhost:5002 w przeglądarce
 ```
 
 ## 📊 Nowe funkcjonalności v1.1.0
@@ -169,7 +169,7 @@ cp backup_20250907_143000.db data/analizator_rynku.db
 docker-compose logs
 
 # Sprawdź porty
-netstat -tlnp | grep 5001
+netstat -tlnp | grep 5002
 
 # Sprawdź uprawnienia
 ls -la data/ logs/ secrets/
@@ -188,12 +188,12 @@ chmod -R 755 data/ logs/ secrets/
 ls -la data/
 
 # Sprawdź uprawnienia bazy
-ls -la data/analizator_rynku.db
+ls -la data/analizator_growth.db
 ```
 
 ## 📞 Wsparcie
 
-- **GitHub:** https://github.com/leszek113/analiza_rynku
-- **Docker Hub:** https://hub.docker.com/r/leszek113/analizator-rynku
+- **GitHub:** https://github.com/leszek113/analizator_growth
+- **Docker Hub:** https://hub.docker.com/r/leszek113/analizator-growth
 - **Wersja:** v1.1.0
 - **Data wydania:** 2025-09-07

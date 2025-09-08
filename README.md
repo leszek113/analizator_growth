@@ -1,4 +1,4 @@
-# Analizator Rynku - v1.1.0 🎯
+# Analizator Growth - v1.1.0 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
 
@@ -47,8 +47,8 @@ Automatyczny system analizy i selekcji spółek dywidendowych z integracją Goog
 
 ### 1. Klonowanie repozytorium
 ```bash
-git clone https://github.com/leszek113/analizator_rynku.git
-cd analizator_rynku
+git clone https://github.com/leszek113/analizator_growth.git
+cd analizator_growth
 ```
 
 ### 2. Środowisko wirtualne
@@ -94,7 +94,7 @@ source venv/bin/activate
 # Uruchomienie aplikacji
 python app.py
 ```
-Aplikacja będzie dostępna pod adresem: `http://localhost:5001`
+Aplikacja będzie dostępna pod adresem: `http://localhost:5002`
 
 ### Ubuntu/Docker (Środowisko testowe)
 Szczegółowa instrukcja dla środowiska Docker znajduje się w pliku: [docs/docker-installation.md](docs/docker-installation.md)
@@ -102,7 +102,7 @@ Szczegółowa instrukcja dla środowiska Docker znajduje się w pliku: [docs/doc
 **Szybki start:**
 ```bash
 # Uruchomienie kontenera
-docker run -d --name analizator-rynku-v1 -p 5001:5001 leszek113/analizator-rynku:v1.0-amd64-fixed2
+docker run -d --name analizator-growth-v1 -p 5002:5002 leszek113/analizator-growth:v1.1.0
 ```
 
 ## 📖 Użycie
@@ -160,7 +160,7 @@ docker run -d --name analizator-rynku-v1 -p 5001:5001 leszek113/analizator-rynku
 ## 🏗️ Architektura
 
 ```
-analizator_rynku/
+analizator_growth/
 ├── app.py                 # Główna aplikacja Flask
 ├── src/
 │   ├── database_manager.py      # Zarządzanie bazą danych
@@ -177,8 +177,8 @@ analizator_rynku/
 ├── static/                      # CSS, JS, obrazy
 ├── data/                        # Baza danych SQLite
 ├── logs/                        # Logi aplikacji
-│   ├── analizator-rynku.log     # Główne logi
-│   ├── analizator-rynku-error.log # Logi błędów
+│   ├── analizator-growth.log     # Główne logi
+│   ├── analizator-growth-error.log # Logi błędów
 │   ├── auto_schedule.log        # Logi automatycznego uruchamiania
 │   └── auto_schedule_monitoring.json # JSON logi monitoringu
 └── secrets/                     # Pliki konfiguracyjne
@@ -334,8 +334,8 @@ X-API-Key: your_secret_api_key_here
 ## 📝 Logowanie
 
 ### Logi aplikacji
-- `logs/analizator-rynku.log` - Główne logi aplikacji
-- `logs/analizator-rynku-error.log` - Logi błędów
+- `logs/analizator-growth.log` - Główne logi aplikacji
+- `logs/analizator-growth-error.log` - Logi błędów
 
 ### Logi automatycznego uruchamiania
 - `logs/auto_schedule.log` - Czytelne logi (debugowanie)
@@ -371,31 +371,31 @@ X-API-Key: your_secret_api_key_here
 ### Przykłady użycia
 ```bash
 # Sprawdzenie statusu
-curl http://localhost:5001/api/auto-schedule/health
+curl http://localhost:5002/api/auto-schedule/health
 
 # Pobranie historii
-curl http://localhost:5001/api/auto-schedule/history?limit=5
+curl http://localhost:5002/api/auto-schedule/history?limit=5
 
 # Konfiguracja (wymaga API key)
 curl -X POST -H "X-API-Key: secret_key_123" \
   -H "Content-Type: application/json" \
   -d '{"enabled": true, "time": "09:00"}' \
-  http://localhost:5001/api/auto-schedule/configure
+  http://localhost:5002/api/auto-schedule/configure
 
 # Pobranie flag spółki
-curl http://localhost:5001/api/flags/AAPL
+curl http://localhost:5002/api/flags/AAPL
 
 # Ustawienie flagi (wymaga API key)
 curl -X POST -H "X-API-Key: secret_key_123" \
   -H "Content-Type: application/json" \
   -d '{"flag_color": "green", "flag_notes": "Dobra spółka"}' \
-  http://localhost:5001/api/flags/AAPL
+  http://localhost:5002/api/flags/AAPL
 
 # Status zapisu flag
-curl http://localhost:5001/api/flag-snapshot/status
+curl http://localhost:5002/api/flag-snapshot/status
 
 # Historia zapisu flag
-curl http://localhost:5001/api/flag-snapshot/history
+curl http://localhost:5002/api/flag-snapshot/history
 ```
 
 ## 📝 Licencja
@@ -413,10 +413,10 @@ MIT License - zobacz plik [LICENSE](LICENSE)
 ## 📞 Wsparcie
 
 W przypadku problemów:
-1. Sprawdź [Issues](https://github.com/leszek113/analizator_rynku/issues)
+1. Sprawdź [Issues](https://github.com/leszek113/analizator_growth/issues)
 2. Utwórz nowy Issue z opisem problemu
 3. Dołącz logi i konfigurację
 
 ---
 
-**Analizator Rynku v1.0** - Automatyczna selekcja spółek dywidendowych 🎯 
+**Analizator Growth v1.1.0** - Automatyczna selekcja spółek dywidendowych 🎯 

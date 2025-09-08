@@ -18,7 +18,7 @@ class YahooFinanceAnalyzer:
     
     def get_stock_data(self, ticker: str, period: str = "1mo") -> Optional[pd.DataFrame]:
         """
-        Pobiera dane historyczne dla danej spółki
+        Pobiera dane historyczne dla danej spółki z walidacją
         
         Args:
             ticker: Symbol spółki (np. 'AAPL')
@@ -28,6 +28,11 @@ class YahooFinanceAnalyzer:
             DataFrame z danymi lub None jeśli błąd
         """
         try:
+            # Waliduj ticker
+            if not self._validate_ticker(ticker):
+                logger.error(f"Nieprawidłowy ticker: {ticker}")
+                return None
+            
             if ticker in self.cache and period in self.cache[ticker]:
                 logger.info(f"Używam cache dla {ticker} ({period})")
                 return self.cache[ticker][period]
@@ -40,6 +45,11 @@ class YahooFinanceAnalyzer:
                 logger.warning(f"Brak danych dla {ticker}")
                 return None
             
+            # Waliduj dane
+            if not self._validate_stock_data(data):
+                logger.warning(f"Dane dla {ticker} nie przeszły walidacji")
+                return None
+            
             # Inicjalizuj cache
             if ticker not in self.cache:
                 self.cache[ticker] = {}
@@ -50,6 +60,61 @@ class YahooFinanceAnalyzer:
         except Exception as e:
             logger.error(f"Błąd podczas pobierania danych dla {ticker}: {e}")
             return None
+    
+    def _validate_ticker(self, ticker: str) -> bool:
+        """
+        Waliduje format tickera
+        """
+        import re
+        if not ticker or not isinstance(ticker, str):
+            return False
+        
+        # Ticker powinien zawierać tylko litery, cyfry i kropki
+        pattern = r'^[A-Za-z0-9.]+$'
+        return bool(re.match(pattern, ticker.strip()))
+    
+    def _validate_stock_data(self, data: pd.DataFrame) -> bool:
+        """
+        Waliduje dane giełdowe
+        """
+        try:
+            # Sprawdź czy DataFrame nie jest pusty
+            if data.empty:
+                return False
+            
+            # Sprawdź wymagane kolumny
+            required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+            if not all(col in data.columns for col in required_columns):
+                logger.warning(f"Brak wymaganych kolumn: {required_columns}")
+                return False
+            
+            # Sprawdź czy ceny są dodatnie
+            price_columns = ['Open', 'High', 'Low', 'Close']
+            for col in price_columns:
+                if (data[col] <= 0).any():
+                    logger.warning(f"Znaleziono nieprawidłowe ceny w kolumnie {col}")
+                    return False
+            
+            # Sprawdź czy High >= Low
+            if (data['High'] < data['Low']).any():
+                logger.warning("Znaleziono wiersze gdzie High < Low")
+                return False
+            
+            # Sprawdź czy High >= Open i High >= Close
+            if (data['High'] < data['Open']).any() or (data['High'] < data['Close']).any():
+                logger.warning("Znaleziono wiersze gdzie High < Open lub High < Close")
+                return False
+            
+            # Sprawdź czy Low <= Open i Low <= Close
+            if (data['Low'] > data['Open']).any() or (data['Low'] > data['Close']).any():
+                logger.warning("Znaleziono wiersze gdzie Low > Open lub Low > Close")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Błąd podczas walidacji danych: {e}")
+            return False
     
     def calculate_stochastic_oscillator(self, data: pd.DataFrame, 
                                       k_period: int = 36, 
@@ -142,19 +207,19 @@ class YahooFinanceAnalyzer:
         try:
             result = {}
             
-            # Pobierz dane dla 3 miesięcy (więcej danych dla obliczeń)
-            data_3m = self.get_stock_data(ticker, "3mo")
-            if data_3m is not None and not data_3m.empty:
-                # Użyj mniejszych parametrów dla krótszych okresów
-                k_1m, d_1m = self.calculate_stochastic_oscillator(data_3m, k_period=14, d_period=3, smoothing=3)
+            # Pobierz dane dla 5 lat (więcej danych dla obliczeń)
+            data_5y = self.get_stock_data(ticker, "5y")
+            if data_5y is not None and not data_5y.empty:
+                # Użyj standardowych parametrów 36,12,12 dla miesięcznych
+                k_1m, d_1m = self.calculate_stochastic_oscillator(data_5y, k_period=36, d_period=12, smoothing=12)
                 if not d_1m.empty:
                     result['1M'] = d_1m.iloc[-1]  # Ostatnia wartość %D
             
-            # Pobierz dane dla 1 miesiąca (dla tygodniowych obliczeń)
-            data_1m = self.get_stock_data(ticker, "1mo")
-            if data_1m is not None and not data_1m.empty:
-                # Użyj jeszcze mniejszych parametrów dla tygodniowych
-                k_1w, d_1w = self.calculate_stochastic_oscillator(data_1m, k_period=7, d_period=3, smoothing=2)
+            # Pobierz dane dla 2 lat (dla tygodniowych obliczeń)
+            data_2y = self.get_stock_data(ticker, "2y")
+            if data_2y is not None and not data_2y.empty:
+                # Użyj standardowych parametrów 36,12,12 dla tygodniowych
+                k_1w, d_1w = self.calculate_stochastic_oscillator(data_2y, k_period=36, d_period=12, smoothing=12)
                 if not d_1w.empty:
                     result['1W'] = d_1w.iloc[-1]  # Ostatnia wartość %D
             

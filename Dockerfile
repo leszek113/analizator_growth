@@ -1,4 +1,4 @@
-# Analizator Rynku v1.1.0 - Docker Image
+# Analizator Growth v1.1.0 - Docker Image
 FROM python:3.11-slim
 
 # Ustawienie zmiennych środowiskowych
@@ -14,6 +14,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Kopiowanie plików requirements
@@ -37,7 +38,7 @@ ENV APP_RELEASE_DATE="2025-09-07"
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose port
-EXPOSE 5001
+EXPOSE 5002
 
 # Entrypoint
 ENTRYPOINT ["/app/docker-entrypoint.sh"] 

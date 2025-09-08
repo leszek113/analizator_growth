@@ -14,7 +14,7 @@ class DatabaseManager:
     Klasa do zarządzania bazą danych SQLite dla analizatora rynku
     """
     
-    def __init__(self, db_path: str = "data/analizator_rynku.db"):
+    def __init__(self, db_path: str = "data/analizator_growth.db"):
         """
         Inicjalizuje menedżer bazy danych
         

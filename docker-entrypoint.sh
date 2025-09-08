@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Analizator Rynku v1.0 - Docker Entrypoint
+# Analizator Growth v1.1.0 - Docker Entrypoint
 set -e
 
-echo "🚀 Uruchamianie Analizatora Rynku v1.0..."
+echo "🚀 Uruchamianie Analizatora Growth v1.1.0..."
 
 # Sprawdzenie czy istnieją pliki konfiguracyjne
 if [ ! -f "/app/config/selection_rules.yaml" ]; then
@@ -29,5 +29,5 @@ print('✅ Baza danych zainicjalizowana')
 "
 
 # Uruchomienie aplikacji Flask
-echo "🌐 Uruchamianie serwera Flask na porcie 5001..."
+echo "🌐 Uruchamianie serwera Flask na porcie 5002..."
 exec python3 app.py 

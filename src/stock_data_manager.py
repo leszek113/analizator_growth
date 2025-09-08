@@ -20,7 +20,7 @@ class StockDataManager:
     Klasa do zarządzania danymi historycznymi spółek
     """
     
-    def __init__(self, db_path: str = 'data/analizator_rynku.db'):
+    def __init__(self, db_path: str = 'data/analizator_growth.db'):
         self.db_path = db_path
         self.init_database()
     

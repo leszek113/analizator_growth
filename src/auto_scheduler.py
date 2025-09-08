@@ -136,7 +136,7 @@ class AutoScheduler:
             
             # Pobierz liczbę spółek z ostatniego uruchomienia
             latest_run = self.db_manager.get_latest_run()
-            companies_count = len(latest_run['stage1_companies']) if latest_run and 'stage1_companies' in latest_run else 0
+            companies_count = latest_run['selected_count'].iloc[0] if not latest_run.empty else 0
             
             # Log sukcesu
             self._log_event("auto_analysis_completed",

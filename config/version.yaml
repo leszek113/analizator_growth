@@ -7,8 +7,8 @@ version:
   
 # Informacje o wersji
 info:
-  name: "Analizator Rynku"
-  full_name: "Analizator Rynku v1.1.0"
+  name: "Analizator Growth"
+  full_name: "Analizator Growth v1.1.0"
   description: "System analizy spółek giełdowych z selekcją i oceną"
   release_date: "2025-09-07"
   

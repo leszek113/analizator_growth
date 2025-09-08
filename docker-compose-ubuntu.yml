@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  analizator-rynku:
-    image: leszek113/analizator-rynku:v1.1.0
-    container_name: analizator-rynku-v1.1.0
+  analizator-growth:
+    image: leszek113/analizator-growth:v1.1.0
+    container_name: analizator-growth-v1.1.0
     ports:
-      - "5001:5001"
+      - "5002:5002"
     volumes:
       # Persystencja bazy danych
       - ./data:/app/data
@@ -20,7 +20,7 @@ services:
       - PYTHONPATH=/app
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5002/"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -137,8 +137,8 @@ class ConfigLoader:
                     'build': int(docker_build) if docker_build else 0
                 },
                 'info': {
-                    'name': 'Analizator Rynku',
-                    'full_name': f'Analizator Rynku {docker_version}',
+                    'name': 'Analizator Growth',
+                    'full_name': f'Analizator Growth {docker_version}',
                     'description': 'System analizy spółek giełdowych z selekcją i oceną',
                     'release_date': docker_release_date or '2025-09-07'
                 }
@@ -167,7 +167,7 @@ class ConfigLoader:
     def get_app_name(self) -> str:
         """Pobiera nazwę aplikacji"""
         version = self.get_version_info()
-        return version.get('info', {}).get('name', 'Analizator Rynku')
+        return version.get('info', {}).get('name', 'Analizator Growth')
     
     def get_app_description(self) -> str:
         """Pobiera opis aplikacji"""

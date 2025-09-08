@@ -5,7 +5,7 @@
 
 # Konfiguracja
 DOCKER_USERNAME="leszek113"
-IMAGE_NAME="analizator-rynku"
+IMAGE_NAME="analizator-growth"
 VERSION="v1.1.0"
 FULL_IMAGE_NAME="${DOCKER_USERNAME}/${IMAGE_NAME}:${VERSION}"
 LATEST_IMAGE_NAME="${DOCKER_USERNAME}/${IMAGE_NAME}:latest"
