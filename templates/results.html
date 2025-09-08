@@ -135,8 +135,28 @@
                                     </td>
                                     <td>{{ company.selection_data_parsed.get('dividend_growth_streak', 'N/A') }}</td>
                                     <td>{{ company.informational_data_parsed.get('date_edited', 'N/A') }}</td>
-                                    <td>{{ company.informational_data_parsed.get('discount_to_fair_value', 'N/A') }}</td>
-                                    <td>{{ company.informational_data_parsed.get('market_cap_billion', 'N/A') }}</td>
+                                    <td>
+                                        {% set discount_value = company.informational_data_parsed.get('discount_to_fair_value', 'N/A') %}
+                                        {% if discount_value != 'N/A' and discount_value is string and '%' in discount_value %}
+                                            {{ discount_value }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set market_cap = company.informational_data_parsed.get('market_cap_billion', 'N/A') %}
+                                        {% if market_cap != 'N/A' and market_cap is string %}
+                                            {% set market_cap_clean = market_cap.replace('$', '').replace(',', '') %}
+                                            {% if market_cap_clean.replace('.', '').isdigit() %}
+                                                {% set market_cap_num = (market_cap_clean | float) / 1000000000 %}
+                                                ${{ "%.1f"|format(market_cap_num) }} B
+                                            {% else %}
+                                                {{ market_cap }}
+                                            {% endif %}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if company.yield_netto %}
                                             {{ "%.2f"|format(company.yield_netto) }}%

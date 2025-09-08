@@ -15,7 +15,7 @@ informational_columns:
   date_edited: "Date Edited"
   company: "Company"
   sector: "Sector"
-  discount_to_fair_value: "Discount To Fair Value"
+  discount_to_fair_value: "Historical Fair Value"
   market_cap_billion: "Market Cap (Billion)"
   # Możesz dodać więcej kolumn informacyjnych tutaj
   # current_price: "Current Price"
