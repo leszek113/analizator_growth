@@ -18,7 +18,7 @@ docker ps
 
 ```bash
 # Pobierz najnowszą wersję obrazu
-docker pull leszek113/analizator-growth:v1.0-amd64-fixed2
+docker pull leszek113/analizator-growth:v1.1.1
 
 # Sprawdź dostępne obrazy
 docker images | grep analizator-growth
@@ -35,7 +35,7 @@ docker run -d \
   -v $(pwd)/logs:/app/logs \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/secrets:/app/secrets \
-  leszek113/analizator-growth:v1.0-amd64-fixed2
+  leszek113/analizator-growth:v1.1.1
 ```
 
 ## 🎮 Zarządzanie aplikacją
@@ -124,7 +124,7 @@ docker run -d \
   -v $(pwd)/logs:/app/logs \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/secrets:/app/secrets \
-  leszek113/analizator-growth:v1.0-amd64-fixed2
+  leszek113/analizator-growth:v1.1.1
 ```
 
 ## 🔧 Konfiguracja
@@ -149,7 +149,7 @@ docker run -d \
   -v $(pwd)/logs:/app/logs \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/secrets:/app/secrets \
-  leszek113/analizator-growth:v1.0-amd64-fixed2
+  leszek113/analizator-growth:v1.1.1
 ```
 
 ## 🚨 Rozwiązywanie problemów
