@@ -5,6 +5,15 @@ Wszystkie znaczące zmiany w projekcie Analizator Growth będą udokumentowane w
 Format jest oparty na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 a projekt używa [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2025-01-15
+
+### 📊 Dodane - Interfejs
+- Dodano kolumnę DK VR do tabeli wyników
+- Skrócone wartości: UVB (Ultra Value Buy), VSB (Very Strong Buy)
+- Kolorowe badge dla lepszej czytelności (zielone dla UVB, niebieskie dla VSB)
+- Zaktualizowano eksport CSV z nową kolumną DK VR
+- Poprawiono sortowanie w DataTables po dodaniu nowej kolumny
+
 ## [1.2.1] - 2025-01-15
 
 ### 📈 Zmienione - Selekcja

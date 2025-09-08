@@ -89,6 +89,7 @@
                                     <th>Sektor</th>
                                     <th>Kraj</th>
                                     <th>QRating</th>
+                                    <th>DK VR</th>
                                     <th>DivGrStr</th>
                                     <th>Date Edited</th>
                                     <th>Discount To FV</th>
@@ -131,6 +132,16 @@
                                             {{ (qrating|replace('%', '')|float / 100)|int }}
                                         {% else %}
                                             {{ qrating }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set dk_valuation = company.selection_data_parsed.get('dk_valuation_rating', 'N/A') %}
+                                        {% if dk_valuation == 'Ultra Value Buy' %}
+                                            <span class="badge bg-success">UVB</span>
+                                        {% elif dk_valuation == 'Very Strong Buy' %}
+                                            <span class="badge bg-primary">VSB</span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ company.selection_data_parsed.get('dividend_growth_streak', 'N/A') }}</td>
@@ -372,14 +383,14 @@ $(document).ready(function() {
             url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pl.json'
         },
         pageLength: 25,
-        order: [[10, 'desc']], // Sortuj domyślnie po Yield Net (kolumna 10) malejąco
+        order: [[11, 'desc']], // Sortuj domyślnie po Yield Net (kolumna 11) malejąco
         columnDefs: [
             {
-                targets: [0, 1, 2, 3, 4, 5, 6, 7], // Kolumny tekstowe
+                targets: [0, 1, 2, 3, 4, 5, 6, 7, 8], // Kolumny tekstowe
                 type: 'string'
             },
             {
-                targets: [8, 9, 10, 11, 12, 13], // Kolumny numeryczne (Discount To FV, Market Cap, Yield Net, Cena 5%, Stochastic)
+                targets: [9, 10, 11, 12, 13, 14], // Kolumny numeryczne (Discount To FV, Market Cap, Yield Net, Cena 5%, Stochastic)
                 type: 'num',
                 render: function(data, type, row) {
                     if (type === 'sort') {
@@ -393,7 +404,7 @@ $(document).ready(function() {
                 }
             },
             {
-                targets: [14, 15], // Kolumny Notatki i Akcje - nie sortuj
+                targets: [15, 16], // Kolumny Notatki i Akcje - nie sortuj
                 orderable: false
             }
         ],
@@ -413,14 +424,14 @@ function exportToCSV() {
     const table = document.querySelector('table');
     const rows = table.querySelectorAll('tbody tr');
     
-    let csv = 'Ticker,Nazwa,Sektor,Kraj,QRating,DivGrStr,Date Edited,Yield Net,YieldNet 5% Price,Sto 36,12,12 1M,Sto 36,12,12 1W,Notatki\n';
+    let csv = 'Ticker,Nazwa,Sektor,Kraj,QRating,DK VR,DivGrStr,Date Edited,Yield Net,YieldNet 5% Price,Sto 36,12,12 1M,Sto 36,12,12 1W,Notatki\n';
     
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
         const rowData = [];
         
         cells.forEach((cell, index) => {
-            if (index < 12) { // Bez kolumny "Akcje"
+            if (index < 13) { // Bez kolumny "Akcje"
                 let text = cell.textContent.trim();
                 // Usuń emoji i formatowanie
                 text = text.replace(/[✅❌]/g, '').replace(/bg-\w+/g, '').trim();

@@ -2,18 +2,27 @@
 version:
   major: 1
   minor: 2
-  patch: 1
+  patch: 2
   build: 0
   
 # Informacje o wersji
 info:
   name: "Analizator Growth"
-  full_name: "Analizator Growth v1.2.1"
+  full_name: "Analizator Growth v1.2.2"
   description: "System analizy spółek giełdowych z selekcją i oceną"
   release_date: "2025-01-15"
   
 # Historia wersji
 changelog:
+  "1.2.2":
+    date: "2025-01-15"
+    changes:
+      - "📊 INTERFEJS: Dodano kolumnę DK VR do tabeli wyników"
+      - "📊 INTERFEJS: Skrócone wartości: UVB (Ultra Value Buy), VSB (Very Strong Buy)"
+      - "📊 INTERFEJS: Kolorowe badge dla lepszej czytelności"
+      - "📊 INTERFEJS: Zaktualizowano eksport CSV z nową kolumną"
+      - "📊 INTERFEJS: Poprawiono sortowanie w DataTables"
+      
   "1.2.1":
     date: "2025-01-15"
     changes:

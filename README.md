@@ -1,6 +1,14 @@
-# Analizator Growth - v1.2.1 🎯
+# Analizator Growth - v1.2.2 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
+
+## 🆕 Co nowego w v1.2.2
+
+- **📊 INTERFEJS: Dodano kolumnę DK VR do tabeli wyników**
+- **📊 INTERFEJS: Skrócone wartości: UVB (Ultra Value Buy), VSB (Very Strong Buy)**
+- **📊 INTERFEJS: Kolorowe badge dla lepszej czytelności**
+- **📊 INTERFEJS: Zaktualizowano eksport CSV z nową kolumną**
+- **📊 INTERFEJS: Poprawiono sortowanie w DataTables**
 
 ## 🆕 Co nowego w v1.2.1
 
@@ -527,4 +535,4 @@ W przypadku problemów:
 
 ---
 
-**Analizator Growth v1.2.1** - Automatyczna selekcja spółek dywidendowych 🎯 
+**Analizator Growth v1.2.2** - Automatyczna selekcja spółek dywidendowych 🎯 
