@@ -2,18 +2,29 @@
 version:
   major: 1
   minor: 1
-  patch: 0
+  patch: 1
   build: 0
   
 # Informacje o wersji
 info:
   name: "Analizator Growth"
-  full_name: "Analizator Growth v1.1.0"
+  full_name: "Analizator Growth v1.1.1"
   description: "System analizy spółek giełdowych z selekcją i oceną"
-  release_date: "2025-09-07"
+  release_date: "2025-09-08"
   
 # Historia wersji
 changelog:
+  "1.1.1":
+    date: "2025-09-08"
+    changes:
+      - "Zmiana nazwy projektu z 'analizator_rynku' na 'Analizator Growth'"
+      - "Nowe reguły selekcji dla spółek typu growth (bardzo restrykcyjne)"
+      - "Opcja B: N/A dla spółek z < 60 dni danych historycznych"
+      - "Naprawa wyświetlania N/A zamiast nan% w UI"
+      - "Zaktualizowane klucze API na bezpieczniejsze placeholder'y"
+      - "Dodane logi debugowania dla lepszego śledzenia procesu selekcji"
+      - "Zaktualizowana dokumentacja deployment'u"
+      
   "1.1.0":
     date: "2025-09-07"
     changes:

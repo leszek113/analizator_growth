@@ -1,6 +1,16 @@
-# Analizator Growth - v1.1.0 🎯
+# Analizator Growth - v1.1.1 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
+
+## 🆕 Co nowego w v1.1.1
+
+- **🎯 Zmiana nazwy projektu** - z "analizator_rynku" na "Analizator Growth"
+- **📊 Nowe reguły selekcji** - bardzo restrykcyjne warunki dla spółek typu growth
+- **🔧 Opcja B dla Stochastic** - N/A dla spółek z < 60 dni danych historycznych
+- **🐛 Naprawa wyświetlania** - poprawione wyświetlanie N/A zamiast nan% w UI
+- **🔐 Bezpieczeństwo** - zaktualizowane klucze API na bezpieczniejsze placeholder'y
+- **📝 Debug logging** - dodane logi debugowania dla lepszego śledzenia procesu selekcji
+- **📚 Dokumentacja** - zaktualizowana dokumentacja deployment'u
 
 ## 🆕 Co nowego w v1.1.0
 
@@ -102,7 +112,7 @@ Szczegółowa instrukcja dla środowiska Docker znajduje się w pliku: [docs/doc
 **Szybki start:**
 ```bash
 # Uruchomienie kontenera
-docker run -d --name analizator-growth-v1 -p 5002:5002 leszek113/analizator-growth:v1.1.0
+docker run -d --name analizator-growth-v1 -p 5002:5002 leszek113/analizator-growth:v1.1.1
 ```
 
 ## 📖 Użycie
@@ -205,17 +215,29 @@ analizator_growth/
 
 ### Reguły selekcji (`config/selection_rules.yaml`)
 ```yaml
-country:
-  operator: "in"
-  values: ["USA", "Canada"]
-  
-yield:
-  operator: ">="
-  value: 4.0
-  
-quality_rating:
-  operator: "in"
-  values: ["13.00", "12.00"]
+# Reguły selekcji spółek GROWTH - Etap 1 (GŁÓWNA SELEKCJA)
+# Bardzo restrykcyjne warunki dla spółek typu growth
+# Wszystkie spółki które przejdą Etap 1 trafiają do finalnej listy
+
+selection_rules:
+  quality_rating:
+    column: "Quality Rating (out Of 13)"
+    operator: "in"
+    values: ["13.00", "12.00"]
+    description: "Tylko spółki z najwyższymi ocenami jakości (12 lub 13 na 13)"
+
+  sp_credit_rating:
+    column: "S&P Credit Rating"
+    operator: "complex"
+    allowed_patterns: ["A*", "BBB+", "BBB"]
+    excluded_values: ["BBB-", "NA"]
+    description: "Ratingi A (A+, A, A-) oraz BBB+ i BBB. Wykluczone BBB- i NA"
+
+  dk_rating:
+    column: "DK Rating"
+    operator: "in"
+    values: ["Potential Good Buy or Better"]
+    description: "Tylko spółki z pozytywną oceną DK - Potential Good Buy or Better"
 ```
 
 ### Kolumny informacyjne (`config/data_columns.yaml`)
@@ -264,6 +286,7 @@ flag_snapshot:
 - Parametry: Period 36, Smoothing 12, SMA 12
 - Analiza 1M i 1W wykresów
 - Warunek: przynajmniej jeden < 30%
+- **Opcja B**: N/A dla spółek z < 60 dni danych historycznych
 - **UWAGA**: To są tylko dane informacyjne, nie wpływają na selekcję
 
 ### Yield Netto
@@ -419,4 +442,4 @@ W przypadku problemów:
 
 ---
 
-**Analizator Growth v1.1.0** - Automatyczna selekcja spółek dywidendowych 🎯 
+**Analizator Growth v1.1.1** - Automatyczna selekcja spółek dywidendowych 🎯 
