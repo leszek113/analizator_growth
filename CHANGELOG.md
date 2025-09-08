@@ -5,6 +5,15 @@ Wszystkie znaczące zmiany w projekcie Analizator Growth będą udokumentowane w
 Format jest oparty na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 a projekt używa [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-01-15
+
+### 📈 Zmienione - Selekcja
+- Zmieniono warunek selekcji z "DK Rating" na "DK Valuation Rating"
+- Nowe wartości: "Ultra Value Buy", "Very Strong Buy" (zamiast "Potential Good Buy or Better")
+- Bardziej restrykcyjne kryteria - tylko najlepsze okazje inwestycyjne
+- Zaktualizowano konfigurację reguł selekcji i kolumn danych
+- Zaktualizowano dokumentację z nowymi warunkami selekcji
+
 ## [1.2.0] - 2025-01-15
 
 ### 🔒 Dodane - Bezpieczeństwo

@@ -8,7 +8,7 @@ selection_columns:
   yield: "Yield"
   dividend_growth_streak: "Dividend Growth Streak (Years)"
   sp_credit_rating: "S&P Credit Rating"
-  dk_rating: "DK Rating"
+  dk_valuation_rating: "DK Valuation Rating"
 
 # Kolumny informacyjne (możesz edytować)
 informational_columns:

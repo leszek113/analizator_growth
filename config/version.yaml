@@ -2,18 +2,27 @@
 version:
   major: 1
   minor: 2
-  patch: 0
+  patch: 1
   build: 0
   
 # Informacje o wersji
 info:
   name: "Analizator Growth"
-  full_name: "Analizator Growth v1.2.0"
+  full_name: "Analizator Growth v1.2.1"
   description: "System analizy spółek giełdowych z selekcją i oceną"
   release_date: "2025-01-15"
   
 # Historia wersji
 changelog:
+  "1.2.1":
+    date: "2025-01-15"
+    changes:
+      - "📈 SELEKCJA: Zmieniono warunek selekcji z DK Rating na DK Valuation Rating"
+      - "📈 SELEKCJA: Nowe wartości: Ultra Value Buy, Very Strong Buy (zamiast Potential Good Buy or Better)"
+      - "📈 SELEKCJA: Bardziej restrykcyjne kryteria - tylko najlepsze okazje inwestycyjne"
+      - "🔧 KONFIGURACJA: Zaktualizowano reguły selekcji i kolumny danych"
+      - "📚 DOKUMENTACJA: Zaktualizowano README.md z nowymi warunkami selekcji"
+      
   "1.2.0":
     date: "2025-01-15"
     changes:

@@ -1,6 +1,14 @@
-# Analizator Growth - v1.2.0 🎯
+# Analizator Growth - v1.2.1 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
+
+## 🆕 Co nowego w v1.2.1
+
+- **📈 SELEKCJA: Zmieniono warunek selekcji z DK Rating na DK Valuation Rating**
+- **📈 SELEKCJA: Nowe wartości: Ultra Value Buy, Very Strong Buy** (zamiast Potential Good Buy or Better)
+- **📈 SELEKCJA: Bardziej restrykcyjne kryteria** - tylko najlepsze okazje inwestycyjne
+- **🔧 KONFIGURACJA: Zaktualizowano reguły selekcji i kolumny danych**
+- **📚 DOKUMENTACJA: Zaktualizowano README.md z nowymi warunkami selekcji**
 
 ## 🆕 Co nowego w v1.2.0
 
@@ -258,11 +266,11 @@ selection_rules:
     excluded_values: ["BBB-", "NA"]
     description: "Ratingi A (A+, A, A-) oraz BBB+ i BBB. Wykluczone BBB- i NA"
 
-  dk_rating:
-    column: "DK Rating"
+  dk_valuation_rating:
+    column: "DK Valuation Rating"
     operator: "in"
-    values: ["Potential Good Buy or Better"]
-    description: "Tylko spółki z pozytywną oceną DK - Potential Good Buy or Better"
+    values: ["Ultra Value Buy", "Very Strong Buy"]
+    description: "Tylko spółki z najwyższymi ocenami DK Valuation - Ultra Value Buy lub Very Strong Buy"
 ```
 
 ### Kolumny informacyjne (`config/data_columns.yaml`)
@@ -273,7 +281,7 @@ selection_columns:
   yield: "Yield"
   dividend_growth_streak: "Dividend Growth Streak (Years)"
   sp_credit_rating: "S&P Credit Rating"
-  dk_rating: "DK Rating"
+  dk_valuation_rating: "DK Valuation Rating"
 
 informational_columns:
   date_edited: "Date Edited"
@@ -519,4 +527,4 @@ W przypadku problemów:
 
 ---
 
-**Analizator Growth v1.2.0** - Automatyczna selekcja spółek dywidendowych 🎯 
+**Analizator Growth v1.2.1** - Automatyczna selekcja spółek dywidendowych 🎯 

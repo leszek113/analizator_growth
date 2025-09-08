@@ -16,8 +16,8 @@ selection_rules:
     excluded_values: ["BBB-", "NA"]
     description: "Ratingi A (A+, A, A-) oraz BBB+ i BBB. Wykluczone BBB- i NA"
   
-  dk_rating:
-    column: "DK Rating"
+  dk_valuation_rating:
+    column: "DK Valuation Rating"
     operator: "in"
-    values: ["Potential Good Buy or Better"]
-    description: "Tylko spółki z pozytywną oceną DK - Potential Good Buy or Better"
+    values: ["Ultra Value Buy", "Very Strong Buy"]
+    description: "Tylko spółki z najwyższymi ocenami DK Valuation - Ultra Value Buy lub Very Strong Buy"
