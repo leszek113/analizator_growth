@@ -2,18 +2,27 @@
 version:
   major: 1
   minor: 2
-  patch: 2
+  patch: 3
   build: 0
   
 # Informacje o wersji
 info:
   name: "Analizator Growth"
-  full_name: "Analizator Growth v1.2.2"
+  full_name: "Analizator Growth v1.2.3"
   description: "System analizy spółek giełdowych z selekcją i oceną"
   release_date: "2025-01-15"
   
 # Historia wersji
 changelog:
+  "1.2.3":
+    date: "2025-01-15"
+    changes:
+      - "🔧 NAPRAWKA: Naprawiono obliczanie YieldNet 5% Price"
+      - "🔧 NAPRAWKA: Dodano fallback na cenę z Google Sheets gdy Yahoo Finance nie działa"
+      - "🔧 NAPRAWKA: Poprawiono logikę pobierania current_price"
+      - "📊 FUNKCJONALNOŚĆ: YieldNet 5% Price teraz działa poprawnie"
+      - "📝 LOGOWANIE: Dodano szczegółowe logi procesu obliczeń"
+      
   "1.2.2":
     date: "2025-01-15"
     changes:

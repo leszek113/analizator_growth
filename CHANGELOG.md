@@ -5,6 +5,15 @@ Wszystkie znaczące zmiany w projekcie Analizator Growth będą udokumentowane w
 Format jest oparty na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 a projekt używa [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2025-01-15
+
+### 🔧 Naprawione - Funkcjonalność
+- Naprawiono obliczanie YieldNet 5% Price
+- Dodano fallback na cenę z Google Sheets gdy Yahoo Finance nie działa
+- Poprawiono logikę pobierania current_price
+- YieldNet 5% Price teraz działa poprawnie
+- Dodano szczegółowe logi procesu obliczeń
+
 ## [1.2.2] - 2025-01-15
 
 ### 📊 Dodane - Interfejs

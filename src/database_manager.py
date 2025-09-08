@@ -302,13 +302,24 @@ class DatabaseManager:
                         data_1d = stock_manager.get_stock_data(ticker, '1D', limit=1)
                         if not data_1d.empty:
                             current_price = float(data_1d['Close'].iloc[-1])
-                            
-                            if current_price and yield_value:
-                                price_for_5_percent_yield = self.calculate_price_for_5_percent_yield(
-                                    ticker, yield_value, current_price
-                                )
                     except Exception as e:
-                        logger.warning(f"Nie można pobrać ceny dla {ticker}: {e}")
+                        logger.warning(f"Nie można pobrać ceny z Yahoo Finance dla {ticker}: {e}")
+                        # Fallback: użyj ceny z Google Sheets
+                        try:
+                            current_price_str = row.get('Current Price', '')
+                            if current_price_str and current_price_str != 'N/A':
+                                # Usuń symbol $ i konwertuj na float
+                                current_price = float(current_price_str.replace('$', '').replace(',', ''))
+                                logger.info(f"Używam ceny z Google Sheets dla {ticker}: ${current_price}")
+                        except Exception as e2:
+                            logger.warning(f"Nie można pobrać ceny z Google Sheets dla {ticker}: {e2}")
+                    
+                    # Oblicz cenę dla Yield 5% jeśli mamy cenę i yield
+                    if current_price and yield_value:
+                        price_for_5_percent_yield = self.calculate_price_for_5_percent_yield(
+                            ticker, yield_value, current_price
+                        )
+                        logger.info(f"Obliczono price_for_5_percent_yield dla {ticker}: ${price_for_5_percent_yield:.2f}")
                     
                     # Przygotuj dane informacyjne w JSON
                     informational_data = {}

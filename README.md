@@ -1,6 +1,14 @@
-# Analizator Growth - v1.2.2 🎯
+# Analizator Growth - v1.2.3 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
+
+## 🆕 Co nowego w v1.2.3
+
+- **🔧 NAPRAWKA: Naprawiono obliczanie YieldNet 5% Price**
+- **🔧 NAPRAWKA: Dodano fallback na cenę z Google Sheets gdy Yahoo Finance nie działa**
+- **🔧 NAPRAWKA: Poprawiono logikę pobierania current_price**
+- **📊 FUNKCJONALNOŚĆ: YieldNet 5% Price teraz działa poprawnie**
+- **📝 LOGOWANIE: Dodano szczegółowe logi procesu obliczeń**
 
 ## 🆕 Co nowego w v1.2.2
 
@@ -535,4 +543,4 @@ W przypadku problemów:
 
 ---
 
-**Analizator Growth v1.2.2** - Automatyczna selekcja spółek dywidendowych 🎯 
+**Analizator Growth v1.2.3** - Automatyczna selekcja spółek dywidendowych 🎯 
