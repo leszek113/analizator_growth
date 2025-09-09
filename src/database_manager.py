@@ -6,8 +6,10 @@ from typing import List, Dict, Optional
 import logging
 try:
     from .cache_manager import cached, invalidate_cache
+    from .timezone_utils import get_utc_now, get_local_now, utc_to_local, local_to_utc, ensure_utc, ensure_local, format_datetime_for_display
 except ImportError:
     from cache_manager import cached, invalidate_cache
+    from timezone_utils import get_utc_now, get_local_now, utc_to_local, local_to_utc, ensure_utc, ensure_local, format_datetime_for_display
 
 # Konfiguracja logowania
 logging.basicConfig(level=logging.INFO)
@@ -44,7 +46,7 @@ class DatabaseManager:
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS analysis_runs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        run_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        run_date TIMESTAMP NOT NULL,
                         selected_count INTEGER DEFAULT 0,
                         notes TEXT,
                         selection_rules_version TEXT,
@@ -58,7 +60,7 @@ class DatabaseManager:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         version TEXT UNIQUE NOT NULL,
                         rules_json TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        created_at TIMESTAMP NOT NULL,
                         description TEXT
                     )
                 """)
@@ -69,7 +71,7 @@ class DatabaseManager:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         version TEXT UNIQUE NOT NULL,
                         columns_json TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        created_at TIMESTAMP NOT NULL,
                         description TEXT
                     )
                 """)
@@ -101,8 +103,8 @@ class DatabaseManager:
                         note_number INTEGER NOT NULL,
                         title TEXT,
                         content TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        created_at TIMESTAMP NOT NULL,
+                        updated_at TIMESTAMP NOT NULL,
                         UNIQUE(ticker, note_number)
                     )
                 """)
@@ -119,7 +121,7 @@ class DatabaseManager:
                         error_details TEXT, -- JSON z błędami
                         companies_count INTEGER,
                         execution_time_seconds INTEGER,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP NOT NULL
                     )
                 """)
                 
@@ -130,8 +132,8 @@ class DatabaseManager:
                         ticker TEXT NOT NULL UNIQUE,
                         flag_color TEXT NOT NULL CHECK (flag_color IN ('red', 'green', 'yellow', 'blue', 'none')),
                         flag_notes TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP NOT NULL,
+                        updated_at TIMESTAMP NOT NULL
                     )
                 """)
                 
@@ -143,7 +145,7 @@ class DatabaseManager:
                         flag_color TEXT NOT NULL,
                         previous_flag_color TEXT,
                         flag_notes TEXT,
-                        changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        changed_at TIMESTAMP NOT NULL,
                         change_reason TEXT DEFAULT 'manual',
                         run_id INTEGER,
                         FOREIGN KEY (run_id) REFERENCES analysis_runs(id)
@@ -197,7 +199,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 
                 # Usuń poprzednie uruchomienia z dzisiaj (jedno uruchomienie dziennie)
-                today = datetime.now().date()
+                today = get_local_now().date()
                 cursor.execute("""
                     SELECT id FROM analysis_runs 
                     WHERE DATE(run_date) = ?
@@ -221,7 +223,7 @@ class DatabaseManager:
                     INSERT INTO analysis_runs (run_date, selected_count, notes, 
                                               selection_rules_version, informational_columns_version)
                     VALUES (?, ?, ?, ?, ?)
-                """, (datetime.now(), selected_count, notes, 
+                """, (get_utc_now(), selected_count, notes, 
                       current_selection_version, current_info_version))
                 
                 run_id = cursor.lastrowid
@@ -645,7 +647,7 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                today = datetime.now().date()
+                today = get_local_now().date()
                 cursor.execute("""
                     SELECT COUNT(*) FROM analysis_runs 
                     WHERE DATE(run_date) = ?
@@ -668,7 +670,7 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                today = datetime.now().date()
+                today = get_local_now().date()
                 cursor.execute("""
                     SELECT id, run_date, selected_count, notes,
                            selection_rules_version, informational_columns_version
@@ -1202,9 +1204,9 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE company_notes 
-                    SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP
+                    SET title = ?, content = ?, updated_at = ?
                     WHERE ticker = ? AND note_number = ?
-                """, (title, content, ticker, note_number))
+                """, (title, content, get_utc_now(), ticker, note_number))
                 
                 if cursor.rowcount > 0:
                     conn.commit()
@@ -1385,21 +1387,22 @@ class DatabaseManager:
                     if existing:
                         cursor.execute("""
                             UPDATE company_flags 
-                            SET flag_color = ?, flag_notes = ?, updated_at = CURRENT_TIMESTAMP
+                            SET flag_color = ?, flag_notes = ?, updated_at = ?
                             WHERE ticker = ?
-                        """, (flag_color, flag_notes, ticker))
+                        """, (flag_color, flag_notes, get_utc_now(), ticker))
                     else:
                         cursor.execute("""
-                            INSERT INTO company_flags (ticker, flag_color, flag_notes)
-                            VALUES (?, ?, ?)
-                        """, (ticker, flag_color, flag_notes))
+                        INSERT INTO company_flags (ticker, flag_color, flag_notes, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        """, (ticker, flag_color, flag_notes, get_utc_now(), get_utc_now()))
                 
                 # Zapisz do historii jeśli flaga się zmieniła
                 if previous_flag != flag_color:
+                    # Użyj UTC dla bazy danych
                     cursor.execute("""
-                        INSERT INTO flag_history (ticker, flag_color, previous_flag_color, flag_notes, change_reason)
-                        VALUES (?, ?, ?, ?, 'manual')
-                    """, (ticker, flag_color, previous_flag, flag_notes))
+                        INSERT INTO flag_history (ticker, flag_color, previous_flag_color, flag_notes, change_reason, changed_at)
+                        VALUES (?, ?, ?, ?, 'manual', ?)
+                    """, (ticker, flag_color, previous_flag, flag_notes, get_utc_now()))
                 
                 conn.commit()
                 

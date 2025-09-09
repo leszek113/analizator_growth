@@ -5,6 +5,39 @@ Wszystkie znaczące zmiany w projekcie Analizator Growth będą udokumentowane w
 Format jest oparty na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 a projekt używa [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-09-09
+
+### 🚀 Ulepszone - System zarządzania czasami
+- **Timezone Best Practices** - implementacja międzynarodowych standardów zarządzania czasami
+- **UTC w bazie danych** - wszystkie czasy zapisywane w UTC dla uniwersalności
+- **CET w interfejsie** - automatyczna konwersja na czas polski dla użytkowników
+- **Centralne utility functions** - `timezone_utils.py` z funkcjami do zarządzania czasami
+- **Spójność czasów** - ujednolicone podejście w całym systemie
+
+### 🧹 Zoptymalizowane - System
+- **Usunięto generowanie CSV** - eliminacja niepotrzebnych plików CSV z selekcji
+- **Czysta baza danych** - skrypt do czyszczenia danych historycznych
+- **Zachowana konfiguracja** - reguły selekcji i ustawienia scheduler pozostają
+- **Optymalizacja dysku** - brak śmiecenia po dysku niepotrzebnymi plikami
+
+### ⏰ Zmienione - Scheduler
+- **Czas selekcji** - zmieniono z 10:00 na 08:00 CET
+- **Codzienne wykonywanie** - zadanie uruchamia się codziennie o 08:00 CET
+- **Czas snapshot flag** - pozostaje 23:30 CET
+- **Timezone handling** - poprawne zarządzanie strefami czasowymi
+
+### 🔧 Naprawione - Timezone
+- **Naprawiono 29 miejsc** z mieszanymi podejściami do czasu
+- **Usunięto CURRENT_TIMESTAMP** - wszystkie timestampy explicit UTC
+- **Zamieniono datetime.now()** - na get_utc_now() lub get_local_now()
+- **Import handling** - naprawiono problemy z relative/absolute imports
+
+### 📚 Dodane - Dokumentacja
+- **docs/timezone-best-practices.md** - kompletna dokumentacja zarządzania czasami
+- **README.md** - dodano sekcję o timezone practices
+- **scripts/cleanup_database.py** - skrypt do czyszczenia bazy danych
+- **Przykłady użycia** - jak prawidłowo używać funkcji timezone
+
 ## [1.2.4] - 2025-01-15
 
 ### 🚀 Ulepszone - Interfejs użytkownika

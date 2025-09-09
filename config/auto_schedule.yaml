@@ -3,7 +3,7 @@ auto_schedule:
   interval_hours: 24
   max_retries: 3
   retry_delay_minutes: 30
-  time: 09:30
+  time: '08:00'
   timezone: Europe/Warsaw
 flag_snapshot:
   enabled: true

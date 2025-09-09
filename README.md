@@ -1,4 +1,4 @@
-# Analizator Growth - v1.2.4 🎯
+# Analizator Growth - v1.3.0 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
 
@@ -285,6 +285,54 @@ python scripts/version_manager.py validate
 ```
 
 **Szczegółowa dokumentacja:** [docs/version-management.md](docs/version-management.md)
+
+### Timezone Best Practices
+
+System implementuje najlepsze praktyki zarządzania czasami zgodnie z międzynarodowymi standardami.
+
+**Zasada:** "Store in UTC, Display in Local"
+- **Baza danych**: Wszystkie czasy w UTC
+- **Wyświetlanie**: Automatyczna konwersja na CET (Polska)
+- **Scheduler**: Lokalna strefa czasowa (Europe/Warsaw)
+- **Centralne utility**: `timezone_utils.py` z funkcjami do zarządzania czasami
+
+**Szczegółowa dokumentacja:** [docs/timezone-best-practices.md](docs/timezone-best-practices.md)
+
+### Czyszczenie bazy danych
+
+System zawiera skrypt do czyszczenia danych historycznych z zachowaniem konfiguracji.
+
+**Szybkie komendy:**
+```bash
+# Wyczyść dane historyczne (zachowaj konfigurację)
+python3 scripts/cleanup_database.py
+
+# Sprawdź stan bazy danych
+python3 -c "
+import sqlite3
+conn = sqlite3.connect('data/analizator_growth.db')
+cursor = conn.cursor()
+tables = ['analysis_runs', 'stage1_companies', 'auto_schedule_runs', 'flag_history', 'company_flags']
+for table in tables:
+    cursor.execute(f'SELECT COUNT(*) FROM {table}')
+    count = cursor.fetchone()[0]
+    print(f'{table}: {count} rekordów')
+conn.close()
+"
+```
+
+**Co jest usuwane:**
+- Historia uruchomień analizy (`analysis_runs`)
+- Spółki z selekcji (`stage1_companies`)
+- Historia uruchomień scheduler (`auto_schedule_runs`)
+- Historia zmian flag (`flag_history`)
+- Aktualne flagi spółek (`company_flags`)
+- Notatki spółek (`company_notes`)
+
+**Co jest zachowywane:**
+- Reguły selekcji (`selection_rules_versions`)
+- Kolumny informacyjne (`informational_columns_versions`)
+- Dane historyczne cen (`stock_prices`)
 
 ### Reguły selekcji (`config/selection_rules.yaml`)
 ```yaml

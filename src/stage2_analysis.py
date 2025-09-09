@@ -170,28 +170,7 @@ def get_final_selection(stage1_stocks, stage2_results):
     
     return final_stocks
 
-def save_results(stage1_stocks, stage2_results, final_stocks):
-    """
-    Zapisuje wyniki do pliku CSV
-    """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"stage2_results_{timestamp}.csv"
-    
-    try:
-        # Przygotuj dane do zapisu
-        results_to_save = stage2_results.copy()
-        results_to_save['stage1_passed'] = results_to_save['ticker'].isin(stage1_stocks)
-        results_to_save['final_selection'] = results_to_save['ticker'].isin(final_stocks)  # Etap 1 to finalna selekcja
-        
-        # Dodaj timestamp
-        results_to_save['analysis_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Zapisz do CSV
-        results_to_save.to_csv(filename, index=False)
-        print(f"\nWyniki zapisane do: {filename}")
-        
-    except Exception as e:
-        print(f"Błąd podczas zapisywania wyników: {e}")
+# Funkcja save_results została usunięta - wszystkie dane są w bazie danych
 
 def main():
     """
@@ -201,7 +180,11 @@ def main():
     logger = logging.getLogger(__name__)
     
     logger.info("=== ANALIZATOR GROWTH - ETAP 2 (Z WERSJONOWANIEM) ===")
-    logger.info(f"Data analizy: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    try:
+        from .timezone_utils import get_local_now, format_datetime_for_display
+    except ImportError:
+        from timezone_utils import get_local_now, format_datetime_for_display
+    logger.info(f"Data analizy: {format_datetime_for_display(get_local_now())}")
     
     # Inicjalizuj menedżer bazy danych
     db_manager = DatabaseManager()
@@ -249,8 +232,7 @@ def main():
     except Exception as e:
         logger.error(f"Błąd podczas zapisywania do bazy danych: {e}")
     
-    # Zapisz wyniki do CSV (dodatkowo)
-    save_results(stage1_stocks, stage2_results, final_stocks)
+    # CSV nie jest potrzebny - wszystkie dane są w bazie danych
     
     logger.info("=== ANALIZA ZAKOŃCZONA ===")
 

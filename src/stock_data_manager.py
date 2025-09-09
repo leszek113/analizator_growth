@@ -10,6 +10,10 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import logging
 import yfinance as yf
+try:
+    from .timezone_utils import get_utc_now, get_local_now, utc_to_local, local_to_utc, ensure_utc, ensure_local, format_datetime_for_display
+except ImportError:
+    from timezone_utils import get_utc_now, get_local_now, utc_to_local, local_to_utc, ensure_utc, ensure_local, format_datetime_for_display
 
 # Konfiguracja logowania
 logging.basicConfig(level=logging.INFO)
@@ -158,7 +162,7 @@ class StockDataManager:
                         row['Low'],
                         row['Close'],
                         int(row['Volume']) if not pd.isna(row['Volume']) else None,
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        get_utc_now().strftime('%Y-%m-%d %H:%M:%S')
                     ))
                 
                 conn.commit()
@@ -180,7 +184,7 @@ class StockDataManager:
                 cursor = conn.cursor()
                 
                 # Oblicz datę graniczną
-                cutoff_date = datetime.now().date() - timedelta(days=keep_days)
+                cutoff_date = get_local_now().date() - timedelta(days=keep_days)
                 
                 cursor.execute("""
                     DELETE FROM stock_prices 

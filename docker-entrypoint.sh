@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Analizator Growth v1.2.4 - Docker Entrypoint
+# Analizator Growth v1.3.0 - Docker Entrypoint
 set -e
 
-echo "🚀 Uruchamianie Analizatora Growth v1.2.4..."
+echo "🚀 Uruchamianie Analizatora Growth v1.3.0..."
 
 # Sprawdzenie czy istnieją pliki konfiguracyjne
 if [ ! -f "/app/config/selection_rules.yaml" ]; then

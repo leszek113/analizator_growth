@@ -10,6 +10,11 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
 import yaml
+import pytz
+try:
+    from .timezone_utils import get_utc_now, get_local_now, utc_to_local, local_to_utc, ensure_utc, ensure_local, format_datetime_for_display
+except ImportError:
+    from timezone_utils import get_utc_now, get_local_now, utc_to_local, local_to_utc, ensure_utc, ensure_local, format_datetime_for_display
 
 # Dodaj ścieżkę do modułów
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -97,7 +102,7 @@ class AutoScheduler:
     
     def _log_event(self, event: str, **kwargs):
         """Loguje event w obu formatach"""
-        timestamp = datetime.now().isoformat()
+        timestamp = get_utc_now().isoformat()
         
         # Czytelny log
         message = f"Event: {event}"
@@ -115,8 +120,10 @@ class AutoScheduler:
     
     def _run_analysis_job(self):
         """Funkcja uruchamiana przez scheduler"""
-        run_id = f"auto_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        start_time = datetime.now()
+        # Użyj czasu lokalnego dla run_id, ale UTC dla bazy danych
+        now_local = get_local_now()
+        run_id = f"auto_{now_local.strftime('%Y%m%d_%H%M%S')}"
+        start_time = now_local
         
         # Log rozpoczęcia
         self._log_event("auto_analysis_started", 
@@ -131,12 +138,12 @@ class AutoScheduler:
             run_analysis()
             
             # Oblicz czas wykonania
-            end_time = datetime.now()
+            end_time = get_local_now()
             execution_time = int((end_time - start_time).total_seconds())
             
             # Pobierz liczbę spółek z ostatniego uruchomienia
             latest_run = self.db_manager.get_latest_run()
-            companies_count = latest_run['selected_count'].iloc[0] if not latest_run.empty else 0
+            companies_count = int(latest_run['selected_count'].iloc[0]) if not latest_run.empty else 0
             
             # Log sukcesu
             self._log_event("auto_analysis_completed",
@@ -150,7 +157,7 @@ class AutoScheduler:
             
         except Exception as e:
             # Oblicz czas wykonania
-            end_time = datetime.now()
+            end_time = get_local_now()
             execution_time = int((end_time - start_time).total_seconds())
             
             error_details = {
@@ -172,7 +179,10 @@ class AutoScheduler:
     def _run_flag_snapshot_job(self, run_id: str = None):
         """Wykonuje codzienny snapshot flag - zapisuje aktualny stan wszystkich flag"""
         try:
-            self._log_event('flag_snapshot_started', time=datetime.now().isoformat())
+            # Użyj czasu lokalnego
+            now_local = get_local_now()
+            
+            self._log_event('flag_snapshot_started', time=now_local.isoformat())
             self.readable_logger.info("Rozpoczęto codzienny snapshot flag")
             
             # Pobierz wszystkie aktualne flagi
@@ -190,7 +200,7 @@ class AutoScheduler:
                 flag_notes = row.get('flag_notes', '')
                 
                 # Sprawdź czy już jest wpis z dzisiaj dla tego tickera
-                today = datetime.now().date()
+                today = now_local.date()
                 
                 # Zapisz do historii z powodem 'daily_snapshot'
                 success = self._save_flag_to_history(
@@ -202,7 +212,7 @@ class AutoScheduler:
             
             self._log_event('flag_snapshot_completed', 
                            snapshot_count=snapshot_count,
-                           time=datetime.now().isoformat())
+                           time=get_utc_now().isoformat())
             
             self.readable_logger.info(f"Codzienny snapshot flag zakończony - zapisano {snapshot_count} flag")
             
@@ -210,18 +220,21 @@ class AutoScheduler:
             error_details = str(e)
             self._log_event('flag_snapshot_failed', 
                            error=error_details,
-                           time=datetime.now().isoformat())
+                           time=get_utc_now().isoformat())
             self.readable_logger.error(f"Błąd podczas codziennego snapshotu flag: {error_details}")
     
     def _save_flag_to_history(self, ticker: str, flag_color: str, flag_notes: str, 
                              change_reason: str, run_id: str = None) -> bool:
         """Zapisuje flagę do historii"""
         try:
+            # Użyj czasu lokalnego
+            now_local = get_local_now()
+            
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 # Sprawdź czy już jest wpis z dzisiaj dla tego tickera
-                today = datetime.now().date()
+                today = now_local.date()
                 cursor.execute("""
                     SELECT id FROM flag_history 
                     WHERE ticker = ? AND DATE(changed_at) = ? AND change_reason = 'daily_snapshot'
@@ -231,15 +244,15 @@ class AutoScheduler:
                     # Aktualizuj istniejący wpis
                     cursor.execute("""
                         UPDATE flag_history 
-                        SET flag_color = ?, flag_notes = ?, changed_at = CURRENT_TIMESTAMP
+                        SET flag_color = ?, flag_notes = ?, changed_at = ?
                         WHERE ticker = ? AND DATE(changed_at) = ? AND change_reason = 'daily_snapshot'
-                    """, (flag_color, flag_notes, ticker, today))
+                    """, (flag_color, flag_notes, now_local, ticker, today))
                 else:
                     # Dodaj nowy wpis
                     cursor.execute("""
-                        INSERT INTO flag_history (ticker, flag_color, flag_notes, change_reason, run_id)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (ticker, flag_color, flag_notes, change_reason, run_id))
+                        INSERT INTO flag_history (ticker, flag_color, flag_notes, change_reason, run_id, changed_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (ticker, flag_color, flag_notes, change_reason, run_id, now_local))
                 
                 conn.commit()
                 return True
@@ -251,13 +264,16 @@ class AutoScheduler:
     def _save_run_start(self, run_id: str, start_time: datetime):
         """Zapisuje rozpoczęcie uruchomienia do bazy"""
         try:
+            # start_time już ma timezone CET, więc używamy go bezpośrednio
+            start_time_cet = start_time
+            
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT INTO auto_schedule_runs 
                     (run_id, scheduled_time, started_at, status)
                     VALUES (?, ?, ?, ?)
-                """, (run_id, start_time, start_time, 'running'))
+                """, (run_id, start_time_cet, start_time_cet, 'running'))
                 conn.commit()
         except Exception as e:
             self.readable_logger.error(f"Błąd podczas zapisywania rozpoczęcia uruchomienia: {e}")
@@ -266,6 +282,9 @@ class AutoScheduler:
                            error_details: Optional[str], companies_count: int, execution_time: int):
         """Zapisuje zakończenie uruchomienia do bazy"""
         try:
+            # completed_at już ma timezone CET, więc używamy go bezpośrednio
+            completed_at_cet = completed_at
+            
             with self.db_manager.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
@@ -273,7 +292,7 @@ class AutoScheduler:
                     SET completed_at = ?, status = ?, error_details = ?, 
                         companies_count = ?, execution_time_seconds = ?
                     WHERE run_id = ?
-                """, (completed_at, status, error_details, companies_count, execution_time, run_id))
+                """, (completed_at_cet, status, error_details, companies_count, execution_time, run_id))
                 conn.commit()
         except Exception as e:
             self.readable_logger.error(f"Błąd podczas zapisywania zakończenia uruchomienia: {e}")
@@ -412,11 +431,26 @@ class AutoScheduler:
                 history = []
                 
                 for row in rows:
+                    # Konwertuj czasy na CET jeśli są w UTC
+                    warsaw_tz = pytz.timezone('Europe/Warsaw')
+                    
+                    scheduled_time = row[1]
+                    started_at = row[2]
+                    completed_at = row[3]
+                    
+                    # Jeśli czasy są w UTC, konwertuj na CET
+                    if scheduled_time and hasattr(scheduled_time, 'tzinfo') and scheduled_time.tzinfo == pytz.UTC:
+                        scheduled_time = scheduled_time.astimezone(warsaw_tz)
+                    if started_at and hasattr(started_at, 'tzinfo') and started_at.tzinfo == pytz.UTC:
+                        started_at = started_at.astimezone(warsaw_tz)
+                    if completed_at and hasattr(completed_at, 'tzinfo') and completed_at.tzinfo == pytz.UTC:
+                        completed_at = completed_at.astimezone(warsaw_tz)
+                    
                     history.append({
                         'run_id': row[0],
-                        'scheduled_time': row[1],
-                        'started_at': row[2],
-                        'completed_at': row[3],
+                        'scheduled_time': scheduled_time,
+                        'started_at': started_at,
+                        'completed_at': completed_at,
                         'status': row[4],
                         'error_details': json.loads(row[5]) if row[5] else None,
                         'companies_count': row[6],
@@ -452,4 +486,5 @@ def get_auto_scheduler() -> AutoScheduler:
     global auto_scheduler
     if auto_scheduler is None:
         auto_scheduler = AutoScheduler()
+        auto_scheduler.start()
     return auto_scheduler 

@@ -30,7 +30,7 @@ COPY . .
 RUN mkdir -p /app/data /app/logs /app/secrets
 
 # Ustawienie wersji aplikacji jako zmiennej środowiskowej
-ENV APP_VERSION="v1.2.4"
+ENV APP_VERSION="v1.3.0"
 ENV APP_BUILD="0"
 ENV APP_RELEASE_DATE="2025-09-09"
 
