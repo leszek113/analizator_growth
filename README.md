@@ -1,4 +1,4 @@
-# Analizator Growth - v1.2.3 🎯
+# Analizator Growth - v1.2.4 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
 
@@ -143,6 +143,8 @@ pip install -r requirements.txt
 ### macOS (Środowisko deweloperskie)
 Szczegółowa instrukcja instalacji i zarządzania aplikacją na macOS znajduje się w pliku: [docs/macos-installation.md](docs/macos-installation.md)
 
+**Nowy system zarządzania wersjami:** Szczegółowa dokumentacja systemu wersjonowania znajduje się w pliku: [docs/version-management.md](docs/version-management.md)
+
 **Szybki start:**
 ```bash
 # Aktywacja środowiska wirtualnego
@@ -261,6 +263,28 @@ analizator_growth/
 - Możliwość odtworzenia wyników z dowolnej daty
 
 ## 🔧 Konfiguracja
+
+### Zarządzanie wersjami
+
+Analizator Growth używa centralnego systemu zarządzania wersjami, który automatycznie synchronizuje wersje we wszystkich plikach projektu.
+
+**Szybkie komendy:**
+```bash
+# Zwiększ patch version (1.2.3 -> 1.2.4)
+./scripts/update-version.sh patch
+
+# Zwiększ minor version (1.2.3 -> 1.3.0)  
+./scripts/update-version.sh minor
+
+# Zwiększ major version (1.2.3 -> 2.0.0)
+./scripts/update-version.sh major
+
+# Sprawdź spójność wersji
+source venv/bin/activate
+python scripts/version_manager.py validate
+```
+
+**Szczegółowa dokumentacja:** [docs/version-management.md](docs/version-management.md)
 
 ### Reguły selekcji (`config/selection_rules.yaml`)
 ```yaml

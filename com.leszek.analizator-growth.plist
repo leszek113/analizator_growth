@@ -7,12 +7,12 @@
     
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth/venv/bin/python</string>
-        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth/app.py</string>
+        <string>{{PROJECT_ROOT}}/venv/bin/python</string>
+        <string>{{PROJECT_ROOT}}/app.py</string>
     </array>
     
     <key>WorkingDirectory</key>
-    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth</string>
+    <string>{{PROJECT_ROOT}}</string>
     
     <key>RunAtLoad</key>
     <false/>
@@ -32,17 +32,17 @@
     <integer>10</integer>
     
     <key>StandardOutPath</key>
-    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth/logs/analizator-growth.log</string>
+    <string>{{PROJECT_ROOT}}/logs/analizator-growth.log</string>
     
     <key>StandardErrorPath</key>
-    <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth/logs/analizator-growth-error.log</string>
+    <string>{{PROJECT_ROOT}}/logs/analizator-growth-error.log</string>
     
     <key>EnvironmentVariables</key>
     <dict>
         <key>FLASK_ENV</key>
         <string>production</string>
         <key>PYTHONPATH</key>
-        <string>/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth</string>
+        <string>{{PROJECT_ROOT}}</string>
     </dict>
 </dict>
 </plist> 

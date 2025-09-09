@@ -5,7 +5,7 @@
 
 APP_NAME="com.leszek.analizator-growth"
 APP_PORT=5002
-PROJECT_DIR="/Users/leszek/00_SynDrive/01d_Leszek/02d_LSTstuff/cursor/analizator_growth"
+PROJECT_DIR="${PROJECT_ROOT:-$(pwd)}"
 
 # Kolory dla output
 RED='\033[0;31m'

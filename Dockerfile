@@ -30,9 +30,9 @@ COPY . .
 RUN mkdir -p /app/data /app/logs /app/secrets
 
 # Ustawienie wersji aplikacji jako zmiennej środowiskowej
-ENV APP_VERSION="v1.1.1"
+ENV APP_VERSION="v1.2.4"
 ENV APP_BUILD="0"
-ENV APP_RELEASE_DATE="2025-09-08"
+ENV APP_RELEASE_DATE="2025-09-09"
 
 # Ustawienie uprawnień
 RUN chmod +x /app/docker-entrypoint.sh

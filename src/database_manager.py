@@ -695,7 +695,7 @@ class DatabaseManager:
             logger.error(f"Błąd podczas pobierania informacji o dzisiejszej selekcji: {e}")
             return {}
     
-    @cached(ttl=300, key_prefix='latest_results')
+    @cached(ttl=300, key_prefix='latest_results')  # 5 minut - cache jest invalidowany po zmianie flagi
     def get_latest_results(self) -> pd.DataFrame:
         """
         Pobiera najnowsze wyniki analizy z danymi selekcji i informacjami o Etapie 2
@@ -1402,6 +1402,10 @@ class DatabaseManager:
                     """, (ticker, flag_color, previous_flag, flag_notes))
                 
                 conn.commit()
+                
+                # Inwaliduj cache po zmianie flagi
+                invalidate_cache('latest_results')
+                
                 return True
         except Exception as e:
             logger.error(f"Błąd podczas ustawiania flagi dla {ticker}: {e}")

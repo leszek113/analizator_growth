@@ -5,6 +5,19 @@ Wszystkie znaczące zmiany w projekcie Analizator Growth będą udokumentowane w
 Format jest oparty na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 a projekt używa [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2025-01-15
+
+### 🚀 Ulepszone - Interfejs użytkownika
+- **Natychmiastowa aktualizacja flag** - flagi zmieniają się od razu po zapisaniu
+- **Invalidacja cache** - dodano automatyczne czyszczenie cache po zmianie flagi
+- **Szybsze odświeżanie** - skrócono opóźnienie odświeżania strony z 1000ms na 200ms
+- **Lepsze UX** - użytkownicy widzą zmiany flag natychmiast
+
+### 🔧 Naprawione - Cache
+- Naprawiono problem z opóźnionym wyświetlaniem flag w interfejsie
+- Cache `latest_results` jest teraz invalidowany po każdej zmianie flagi
+- Eliminuje problem z wyświetlaniem starych danych przez 5 minut
+
 ## [1.2.3] - 2025-01-15
 
 ### 🔧 Naprawione - Funkcjonalność

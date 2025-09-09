@@ -286,7 +286,7 @@
         .then(data => {
             if (data.success) {
                 alert('Flaga została ustawiona');
-                setTimeout(() => location.reload(), 1000);
+                setTimeout(() => location.reload(), 200);
             } else {
                 alert('Błąd: ' + data.message);
             }

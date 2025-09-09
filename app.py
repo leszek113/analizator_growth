@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = 'analizator_growth_secret_key'
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'analizator_growth_secret_key_change_in_production')
 
 # Inicjalizacja menedżera bazy danych
 db_manager = DatabaseManager()

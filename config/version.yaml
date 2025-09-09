@@ -2,15 +2,15 @@
 version:
   major: 1
   minor: 2
-  patch: 3
+  patch: 4
   build: 0
   
 # Informacje o wersji
 info:
   name: "Analizator Growth"
-  full_name: "Analizator Growth v1.2.3"
+  full_name: "Analizator Growth v1.2.4"
   description: "System analizy spółek giełdowych z selekcją i oceną"
-  release_date: "2025-01-15"
+  release_date: "2025-09-09"
   
 # Historia wersji
 changelog:

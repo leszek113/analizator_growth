@@ -781,7 +781,7 @@ function exportToCSV() {
             .then(data => {
                 if (data.success) {
                     showAlert('Flaga została ustawiona', 'success');
-                    setTimeout(() => location.reload(), 1000);
+                    setTimeout(() => location.reload(), 200);
                 } else {
                     showAlert(data.message, 'danger');
                 }
