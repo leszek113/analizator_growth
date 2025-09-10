@@ -10,6 +10,11 @@ import pandas as pd
 import yaml
 import re
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Załaduj zmienne środowiskowe z pliku .env
+load_dotenv()
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src.database_manager import DatabaseManager
@@ -24,7 +29,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'analizator_growth_secret_key_change_in_production')
+# Bezpieczne ustawienie secret key
+secret_key = os.getenv('FLASK_SECRET_KEY')
+if not secret_key:
+    logger.error("FLASK_SECRET_KEY nie jest ustawiony! Ustaw zmienną środowiskową.")
+    raise ValueError("FLASK_SECRET_KEY jest wymagany w produkcji")
+app.secret_key = secret_key
 
 # Inicjalizuj auto scheduler na start aplikacji
 init_auto_scheduler()

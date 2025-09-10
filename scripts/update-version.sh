@@ -79,6 +79,17 @@ if [ $? -eq 0 ]; then
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Wszystkie wersje są spójne!${NC}"
+        
+        # Automatycznie synchronizuj Docker
+        echo -e "${YELLOW}🔄 Synchronizuję wersje Docker...${NC}"
+        ./scripts/docker-sync-version.sh
+        
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✅ Docker zsynchronizowany z wersją $CURRENT_VERSION!${NC}"
+        else
+            echo -e "${RED}❌ Błąd podczas synchronizacji Docker!${NC}"
+            exit 1
+        fi
     else
         echo -e "${RED}❌ Znaleziono problemy ze spójnością wersji!${NC}"
         exit 1

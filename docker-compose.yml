@@ -3,7 +3,7 @@ version: '3.8'
 services:
   analizator-growth:
     build: .
-    container_name: analizator-growth-1.2.3
+    container_name: analizator-growth-1.3.0
     ports:
       - "5002:5002"
     volumes:

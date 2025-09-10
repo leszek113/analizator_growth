@@ -88,17 +88,22 @@ class ConfigLoader:
             
             # Sprawdź konfigurację
             api_config = self.config.get('api', {})
-            api_key = api_config.get('key', 'CHANGE_ME_SECURE_API_KEY_2025')
+            api_key = api_config.get('key')
             
-            # Jeśli to nadal template, użyj domyślnego
-            if api_key.startswith('{{ env.'):
-                api_key = 'CHANGE_ME_SECURE_API_KEY_2025'
+            # Jeśli to template, sprawdź czy jest ustawiona zmienna środowiskowa
+            if api_key and api_key.startswith('{{ env.'):
+                env_var = api_key[7:-2]  # Usuń '{{ env.' i '}}'
+                env_value = os.getenv(env_var)
+                if env_value:
+                    return env_value
             
-            return api_key
+            # Jeśli nie ma API key, rzuć błąd
+            logger.error("API_KEY nie jest ustawiony! Ustaw zmienną środowiskową API_KEY.")
+            raise ValueError("API_KEY jest wymagany w produkcji")
             
         except Exception as e:
             logger.error(f"Błąd podczas pobierania API key: {e}")
-            return 'CHANGE_ME_SECURE_API_KEY_2025'
+            raise
     
     def get_config(self, section: str) -> Dict[str, Any]:
         """Pobiera konfigurację dla danej sekcji"""

@@ -89,8 +89,12 @@ start() {
     # Zatrzymaj stare procesy jeśli istnieją
     force_stop
     
-    # Uruchom przez launchd
-    launchctl start $APP_NAME
+    # Przejdź do katalogu projektu
+    cd "$PROJECT_DIR"
+    
+    # Aktywuj wirtualne środowisko i uruchom aplikację
+    echo "Aktywuję wirtualne środowisko i uruchamiam aplikację..."
+    nohup bash -c "source venv/bin/activate && python app.py" > logs/app.log 2>&1 &
     
     # Czekaj na uruchomienie
     echo "Czekam na uruchomienie aplikacji..."
@@ -116,8 +120,8 @@ stop() {
         return 0
     fi
     
-    # Zatrzymaj przez launchd
-    launchctl stop $APP_NAME
+    # Zatrzymaj procesy bezpośrednio
+    force_stop
     
     # Czekaj na zatrzymanie
     echo "Czekam na zatrzymanie aplikacji..."
@@ -128,10 +132,6 @@ stop() {
         fi
         sleep 1
     done
-    
-    # Jeśli launchd nie zadziałał, wymuś zatrzymanie
-    echo -e "${YELLOW}launchd nie zatrzymał aplikacji, wymuszam...${NC}"
-    force_stop
     
     # Sprawdź czy się zatrzymała
     if ! check_app; then

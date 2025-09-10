@@ -1,24 +1,32 @@
-# Konfiguracja API i bezpieczeństwa
+# Konfiguracja API dla Analizator Growth
+# Wszystkie klucze API muszą być ustawione jako zmienne środowiskowe
+
 api:
+  # API Key - ustaw zmienną środowiskową API_KEY
   key: "{{ env.API_KEY }}"
+  
+  # Konfiguracja bezpieczeństwa
+  security:
+    enable_api_auth: true
+    timeout: 30
+    max_retries: 3
+  
+  # Rate limiting
+  rate_limits:
+    notes: 100      # żądań na godzinę
+    flags: 50       # żądań na godzinę
+    general: 200    # żądań na godzinę
+    window: 3600    # okno czasowe w sekundach
+
+# Konfiguracja Google Sheets
+google_sheets:
+  credentials_path: "{{ env.GOOGLE_CREDENTIALS_PATH }}"
+  sheet_id: "{{ env.GOOGLE_SHEET_ID }}"
+  sheet_name: "{{ env.GOOGLE_SHEET_NAME }}"
+  worksheet_name: "{{ env.GOOGLE_WORKSHEET_NAME }}"
+
+# Konfiguracja Yahoo Finance
+yahoo_finance:
+  api_key: "{{ env.YAHOO_FINANCE_API_KEY }}"
   timeout: 30
   max_retries: 3
-
-security:
-  enable_api_auth: true
-  allowed_ips: []  # Puste = wszystkie IP
-  session_timeout: 3600  # 1 godzina
-
-# Konfiguracja dla różnych środowisk
-environments:
-  development:
-    api_key: "CHANGE_ME_DEV_API_KEY_2025"
-    debug: true
-    
-  production:
-    api_key: "{{ env.API_KEY }}"
-    debug: false
-    
-  testing:
-    api_key: "CHANGE_ME_TEST_API_KEY_2025"
-    debug: true
