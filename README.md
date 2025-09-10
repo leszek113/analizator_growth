@@ -1,6 +1,15 @@
-# Analizator Growth - v1.3.0 🎯
+# Analizator Growth - v1.3.1 🎯
 
 Automatyczny system analizy i selekcji spółek dywidendowych z integracją Google Sheets i Yahoo Finance.
+
+## 🆕 Co nowego w v1.3.1
+
+- **🔧 NAPRAWKA: Naprawiono problemy ze startem aplikacji** - dodano python-dotenv
+- **🔧 NAPRAWKA: Poprawiono skrypt zarządzania (manage-app.sh)** - używa wirtualnego środowiska
+- **🔧 NAPRAWKA: Naprawiono ładowanie zmiennych środowiskowych** - automatyczne ładowanie z .env
+- **🔧 NAPRAWKA: Rozwiązano konflikty portów** - lepsze zarządzanie procesami
+- **📚 DOKUMENTACJA: Dodano DEPLOYMENT_UBUNTU.md** - instrukcje wdrożenia na Ubuntu
+- **🚀 STABILNOŚĆ: Aplikacja uruchamia się poprawnie** - gotowa do produkcji
 
 ## 🆕 Co nowego w v1.2.3
 

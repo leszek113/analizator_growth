@@ -5,6 +5,22 @@ Wszystkie znaczące zmiany w projekcie Analizator Growth będą udokumentowane w
 Format jest oparty na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 a projekt używa [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-09-10
+
+### 🔧 Naprawione - Problemy ze startem aplikacji
+- **Dodano python-dotenv** - automatyczne ładowanie zmiennych środowiskowych z pliku .env
+- **Naprawiono skrypt zarządzania** - `manage-app.sh` teraz używa wirtualnego środowiska
+- **Rozwiązano konflikty portów** - lepsze zarządzanie procesami Python
+- **Poprawiono ładowanie konfiguracji** - aplikacja uruchamia się bez błędów
+
+### 📚 Dodane - Dokumentacja
+- **DEPLOYMENT_UBUNTU.md** - szczegółowe instrukcje wdrożenia na Ubuntu
+- **docker-sync-version.sh** - skrypt synchronizacji wersji w Docker
+
+### 🚀 Ulepszone - Stabilność
+- **Aplikacja uruchamia się poprawnie** - wszystkie problemy ze startem rozwiązane
+- **Gotowość produkcyjna** - system gotowy do wdrożenia
+
 ## [1.3.0] - 2025-09-09
 
 ### 🚀 Ulepszone - System zarządzania czasami
