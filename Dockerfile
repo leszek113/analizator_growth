@@ -1,4 +1,4 @@
-# Analizator Growth v1.1.2 - Docker Image
+# Analizator Growth v1.3.1 - Docker Image
 FROM python:3.11-slim
 
 # Ustawienie zmiennych środowiskowych
@@ -30,9 +30,9 @@ COPY . .
 RUN mkdir -p /app/data /app/logs /app/secrets
 
 # Ustawienie wersji aplikacji jako zmiennej środowiskowej
-ENV APP_VERSION="v1.3.0"
+ENV APP_VERSION="v1.3.1"
 ENV APP_BUILD="0"
-ENV APP_RELEASE_DATE="2025-09-09"
+ENV APP_RELEASE_DATE="2025-09-10"
 
 # Ustawienie uprawnień
 RUN chmod +x /app/docker-entrypoint.sh

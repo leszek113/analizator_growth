@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   analizator-growth:
-    image: leszek113/analizator-growth:v1.3.0
-    container_name: analizator-growth-1.3.0
+    image: leszek113/analizator-growth:v1.3.1
+    container_name: analizator-growth-1.3.1
     ports:
       - "5002:5002"
     volumes:
